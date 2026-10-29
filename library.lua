@@ -502,6 +502,7 @@ do
 	ui_state.height = 540
 	ui_state.resized = false
 	ui_state.sidebar_width = 150
+	ui_state.logo_path = getgenv().script_logo or file_path .. "/assets/logo.png"
 	menu["ui_scale"] = ui_state.scale
 	local menu_position = udim2_new(
 		0,
@@ -1023,6 +1024,61 @@ do
 		["Transparency"] = 1,
 	})
 
+	function menu:set_branding(options)
+		if type(options) ~= "table" then
+			options = { title = options }
+		end
+		if options["title"] ~= nil then
+			juju_text["Text"] = tostring(options["title"])
+		end
+		if options["subtitle"] ~= nil then
+			build_text["Text"] = tostring(options["subtitle"])
+		end
+		if options["logo"] ~= nil then
+			return self:set_logo(options["logo"])
+		end
+		return true
+	end
+
+	function menu:set_text(title, subtitle)
+		return self:set_branding({ title = title, subtitle = subtitle })
+	end
+
+	function menu:set_logo(path)
+		if type(path) ~= "string" or path == "" then
+			return false, "logo path must be a non-empty string"
+		end
+		if not isfile(path) then
+			path = file_path .. "/" .. path
+		end
+		if not isfile(path) then
+			return false, "logo file does not exist: " .. path
+		end
+
+		local loaded_asset, asset = pcall(getcustomasset, path)
+		local applied_asset = false
+		if loaded_asset then
+			applied_asset = pcall(function()
+				logo["object"]["__OBJECT"]["Image"] = asset
+				drag_logo["object"]["__OBJECT"]["Image"] = asset
+			end)
+		end
+		if not applied_asset then
+			local image_data = readfile(path)
+			logo["Data"] = image_data
+			drag_logo["Data"] = image_data
+		end
+
+		ui_state.logo_path = path
+		return true
+	end
+
+	menu:set_branding({
+		title = getgenv().script_name or "juju",
+		subtitle = getgenv().script_version or "live",
+	})
+	menu:set_logo(ui_state.logo_path)
+
 	-- > ( keybinds )
 
 	local keybind_data = {
@@ -1051,7 +1107,10 @@ do
 		elseif type == 3 then
 			element:set_toggle(activated, true)
 		elseif type == 4 then
-			return element["on_clicked"]:Fire()
+			if activated then
+				return element["on_clicked"]:Fire()
+			end
+			return
 		end
 
 		self["activated"] = activated
@@ -1552,10 +1611,10 @@ do
 				["value"] = value_image,
 				["shadow"] = keybind_shadow,
 			}
+		end
 
-			if keybind["value"] then
-				menu["show_bind"](keybind)
-			end
+		if list_drawings[keybind] and (keybind["activated"] or keybind["method"] == 4) then
+			menu["show_bind"](keybind)
 		end
 	end)
 
@@ -1585,12 +1644,10 @@ do
 	end)
 
 	create_connection(on_keybind_change, function(keybind, element, activated)
-		if menu["keybinds_visible"] then
-			if activated then
-				menu["show_bind"](keybind)
-			else
-				menu["hide_bind"](keybind)
-			end
+		if activated then
+			menu["show_bind"](keybind)
+		else
+			menu["hide_bind"](keybind)
 		end
 	end)
 
@@ -2510,7 +2567,9 @@ do
 
 				if not new_keybind_data then
 					new_keybind_data = setmetatable({
-						["key"] = nil,
+						["key"] = actives["context"]["keybind_flag"]
+							and flags[actives["context"]["keybind_flag"]]
+							or nil,
 						["method"] = 1,
 						["value"] = nil,
 						["activated"] = false,
@@ -2555,21 +2614,23 @@ do
 					["dropdown"] = {
 						["flag"] = tostring({}):sub(math_random(8, 12)),
 						["requires_one"] = true,
-						["options"] = { "toggled", "not held", "held" },
-						["default"] = { "toggled" },
+						["options"] = { "toggle", "hold", "always" },
+						["default"] = { "toggle" },
 					},
 				}, true)
 
 				local method = new_keybind_data["method"]
 
 				activate_when:set_dropdown(
-					method == 1 and { "toggled" } or method == 2 and { "not held" } or { "held" }
+					method == 4 and { "always" } or method == 3 and { "hold" } or { "toggle" }
 				)
 
 				create_connection(activate_when["on_dropdown_change"], function(value)
 					local value = value[1]
-					new_keybind_data["method"] = value == "toggled" and 1 or value == "not held" and 2 or 3
-					new_keybind_data:set_activated(value == "not held" and true or false)
+					new_keybind_data["method"] = value == "toggle" and 1 or value == "hold" and 3 or 4
+					if new_keybind_data["type"] ~= 4 then
+						new_keybind_data:set_activated(value == "always")
+					end
 				end)
 
 				local active = actives["keybind"]
@@ -2638,9 +2699,9 @@ do
 					end)
 				elseif active["toggle_flag"] then
 					new_keybind_data["type"] = 3
-
-					new_keybind_data["value"] = flags[active["toggle_flag"]]
-					new_keybind_data["original_value"] = flags[active["toggle_flag"]]
+					new_keybind_data["value"] = true
+					new_keybind_data["original_value"] = false
+					new_keybind_data["activated"] = flags[active["toggle_flag"]] == true
 				else
 					activate_when:set_visible(false)
 					new_keybind_data["type"] = 4
@@ -2649,7 +2710,28 @@ do
 
 				create_connection(new_keybind["on_key_change"], function(key)
 					new_keybind_data["key"] = key
+					local element = new_keybind_data["element"]
+					if element["keybind_flag"] then
+						element:set_key(key)
+					end
 				end)
+				new_keybind_data["key_element"] = new_keybind
+				create_right_click_connection(
+					new_keybind["parent"],
+					new_keybind["drawings"]["keybind_border"],
+					function(position)
+						if
+							keybind_data[new_keybind_data["element"]] == new_keybind_data
+							and new_keybind_data["key"] ~= nil
+						then
+							menu_references["open_context"](
+								{ 10, 11, 12, 13 },
+								new_keybind_data["element"],
+								position
+							)
+						end
+					end
+				)
 
 				if do_fire then
 					on_keybind_created:Fire(new_keybind_data, actives["context"])
@@ -2896,7 +2978,72 @@ do
 				close_context()
 			end,
 		},
+		[10] = {
+			"toggle",
+			nil,
+			function()
+				local data = keybind_data[actives["context"]]
+				if data then
+					data["method"] = 1
+					if data["type"] ~= 4 then
+						data:set_activated(false)
+					end
+				end
+				close_context()
+			end,
+		},
+		[11] = {
+			"hold",
+			nil,
+			function()
+				local data = keybind_data[actives["context"]]
+				if data then
+					data["method"] = 3
+					if data["type"] ~= 4 then
+						data:set_activated(false)
+					end
+				end
+				close_context()
+			end,
+		},
+		[12] = {
+			"always",
+			nil,
+			function()
+				local data = keybind_data[actives["context"]]
+				if data then
+					data["method"] = 4
+					if data["type"] ~= 4 then
+						data:set_activated(true)
+					end
+				end
+				close_context()
+			end,
+		},
+		[13] = {
+			"remove keybind",
+			nil,
+			function()
+				local element = actives["context"]
+				local data = keybind_data[element]
+				if data then
+					if data["type"] ~= 4 then
+						data:set_activated(false)
+					end
+					if actives["keybind"] == element then
+						close_keybind()
+					end
+					keybind_data[element] = nil
+					on_keybind_deleted:Fire(data, element)
+				end
+				close_context()
+			end,
+		},
 	}
+	context_buttons[10][2] = context_buttons[2][2]
+	context_buttons[11][2] = context_buttons[2][2]
+	context_buttons[12][2] = context_buttons[2][2]
+	context_buttons[13][2] = context_buttons[2][2]
 
 	for i = 1, #context_buttons do
 		local button = context_buttons[i]
@@ -2953,7 +3100,7 @@ do
 		}
 	end
 
-	local open_context = function(buttons, element, position)
+	menu_references["open_context"] = function(buttons, element, position)
 		local x_position = position["X"] + 15
 		local y_position = 0
 
@@ -2990,6 +3137,15 @@ do
 
 				if index == 1 then
 					button["text"]["Text"] = keybind_data[element] and "edit keybind" or "create keybind"
+				elseif index >= 10 and index <= 12 then
+					local data = keybind_data[element]
+					local labels = { "toggle", "hold", "always" }
+					local methods = { 1, 3, 4 }
+					button["text"]["Text"] = data and data["method"] == methods[index - 9]
+						and "✓ " .. labels[index - 9]
+						or labels[index - 9]
+				elseif index == 13 then
+					button["text"]["Text"] = "remove keybind"
 				end
 
 				local button_textbounds = button["text"]["TextBounds"]["X"]
@@ -4215,11 +4371,15 @@ do
 					local key = keybind["key"]
 					local is_key = user_input_type == key or input["KeyCode"] == key
 
-					if is_key then
+					if is_key and keybind["method"] ~= 4 then
 						local method = keybind["method"]
 
 						if method == 1 then
-							keybind:set_activated(not keybind["activated"])
+							if keybind["type"] == 4 then
+								keybind:set_activated(true)
+							else
+								keybind:set_activated(not keybind["activated"])
+							end
 						else
 							keybind:set_activated(method == 3 and true or false)
 						end
@@ -4504,6 +4664,21 @@ do
 			for _, section in self["sections"] do
 				section:destroy()
 			end
+			for _, subtab in self["subtabs"] or {} do
+				for _, key in { "label", "hitbox", "underline" } do
+					local drawing = subtab[key]
+					if drawing then
+						drawing:Destroy()
+					end
+				end
+				local subtabs = menu["subtabs"]
+				for i = 1, #subtabs do
+					if subtabs[i] == subtab then
+						remove(subtabs, i)
+						break
+					end
+				end
+			end
 
 			self["group"]:remove_tab(name)
 		end
@@ -4602,7 +4777,7 @@ do
 				tween(item["label"], {
 					Color = active and menu["colors"]["active_text"] or menu["colors"]["inactive_text"],
 				}, circular, out, 0.15)
-				tween(item["underline"], { Transparency = active and 0.8 or 0 }, circular, out, 0.15)
+				tween(item["underline"], { Transparency = active and 0.12 or 1 }, circular, out, 0.15)
 				for _, child_section in item["sections"] do
 					child_section["border"]["Visible"] = active
 				end
@@ -4610,7 +4785,14 @@ do
 		end
 
 		function subtab:create_section(name, side, size, y_position)
-			local child_section = tab["group"]:create_section(tab["name"], name, side, size, y_position or 0.06)
+			local section_y = y_position or 0.06
+			local child_section = tab["group"]:create_section(
+				tab["name"],
+				name,
+				side,
+				size * (1 - section_y),
+				section_y
+			)
 			if child_section then
 				self["sections"][#self["sections"] + 1] = child_section
 				child_section["border"]["Visible"] = tab["active_subtab"] == self
@@ -4622,7 +4804,7 @@ do
 		if #subtabs == 1 then
 			select_subtab()
 		else
-			underline["Transparency"] = 0
+			underline["Transparency"] = 1
 		end
 		return subtab
 	end
@@ -4692,6 +4874,32 @@ do
 			return
 		end
 		self["is_visible"] = true
+		menu.update_layout()
+	end
+
+	function group:destroy()
+		for i = #self["ordered_tabs"], 1, -1 do
+			local tab = self["ordered_tabs"][i]
+			if tab then
+				tab:destroy()
+			end
+		end
+		if self["text"] then
+			self["text"]:Destroy()
+			self["text"] = nil
+		end
+		if self["line"] then
+			self["line"]:Destroy()
+			self["line"] = nil
+		end
+		menu["groups"][self["name"]] = nil
+		local ordered_groups = menu["ordered_groups"]
+		for i = 1, #ordered_groups do
+			if ordered_groups[i] == self then
+				remove(ordered_groups, i)
+				break
+			end
+		end
 		menu.update_layout()
 	end
 
@@ -5078,12 +5286,12 @@ do
 				self:add_icon(info["text"], star)
 			end
 			create_right_click_connection(self["holder"], border, function(position)
-				open_context({ menu["favorites"][flag] and 6 or 5 }, new_item, position)
+				menu_references["open_context"]({ menu["favorites"][flag] and 6 or 5 }, new_item, position)
 			end)
 		elseif self["configs"] then
 			new_item["parent"] = self
 			create_right_click_connection(self["holder"], border, function(position)
-				open_context({ menu["autoload"] == new_item["name"] and 9 or 8 }, new_item, position)
+				menu_references["open_context"]({ menu["autoload"] == new_item["name"] and 9 or 8 }, new_item, position)
 			end)
 		end
 
@@ -5182,6 +5390,34 @@ do
 			self["selected"] = nil
 			if not skip then
 				self["on_selection_change"]:Fire(nil)
+			end
+		end
+	end
+
+	function panel_section:destroy()
+		local elements = self["elements"]
+		for i = #elements, 1, -1 do
+			local item = elements[i]
+			if item then
+				self:remove_item(item["name"], false, true)
+			end
+		end
+		for _, key in {
+			"border",
+			"inside",
+			"line_two",
+			"line",
+			"label",
+			"holder",
+			"search_image",
+			"search_border",
+			"search_inside",
+			"search_text",
+		} do
+			local drawing = self[key]
+			if drawing then
+				drawing:Destroy()
+				self[key] = nil
 			end
 		end
 	end
@@ -5372,6 +5608,7 @@ do
 				}),
 			},
 			["frame"] = frame,
+			["parent"] = parent,
 			["visible"] = true,
 			["section"] = info["section"],
 			["name"] = info["text"],
@@ -5449,11 +5686,6 @@ do
 					new_element:set_toggle(not flags[properties["flag"]])
 				end)
 
-				if not info["fake"] then
-					create_right_click_connection(parent, toggle_click, function(position)
-						open_context(keybind_data[new_element] and { 2, 1 } or { 1 }, new_element, position)
-					end)
-				end
 			elseif element == "slider" then
 				total_y_size += 14
 
@@ -5576,11 +5808,6 @@ do
 					)
 				end)
 
-				if not info["fake"] then
-					create_right_click_connection(parent, slider_border, function(position)
-						open_context(keybind_data[new_element] and { 2, 1 } or { 1 }, new_element, position)
-					end)
-				end
 
 				new_element:set_slider(properties["default"] or properties["min"])
 			elseif element == "textbox" then
@@ -5782,11 +6009,6 @@ do
 					end)
 				end
 
-				if not info["fake"] then
-					create_right_click_connection(parent, dropdown_border, function(position)
-						open_context(keybind_data[new_element] and { 2, 1 } or { 1 }, new_element, position)
-					end)
-				end
 
 				local default = properties["default"]
 				new_element["dropdown_default"] = default
@@ -5869,6 +6091,24 @@ do
 						keybind_data[data]["key"] = key
 						flags[properties["flag"]] = key
 					end)
+					create_connection(new_element["on_key_change"], function(key)
+						local action_keybind = keybind_data[new_element]
+						if action_keybind then
+							action_keybind["key"] = key
+						end
+					end)
+					new_element:set_key(properties["default"])
+					create_right_click_connection(parent, keybind_border, function(position)
+						if not flags[properties["flag"]] then
+							return
+						end
+						local action_keybind = keybind_data[new_element]
+						if action_keybind then
+							menu_references["open_context"]({ 10, 11, 12, 13 }, new_element, position)
+						else
+							menu_references["open_context"]({ 1 }, new_element, position)
+						end
+					end)
 				end
 			elseif element == "colorpicker" then
 				local transparency = properties["default_transparency"] or 0
@@ -5940,7 +6180,7 @@ do
 				end)
 
 				create_right_click_connection(parent, colorpicker_border, function(position)
-					open_context({ 7, 3, 4 }, new_element, position)
+					menu_references["open_context"]({ 7, 3, 4 }, new_element, position)
 				end)
 
 				new_element:set_colorpicker(properties["default_color"] or color3_fromrgb(255, 0, 0))
@@ -6085,11 +6325,6 @@ do
 						end
 					end)
 
-					if not info["fake"] then
-						create_right_click_connection(parent, button_border, function(position)
-							open_context(keybind_data[new_element] and { 2, 1 } or { 1 }, new_element, position)
-						end)
-					end
 				end
 			end
 		end
@@ -6120,6 +6355,31 @@ do
 		end
 	end
 
+	function element:set_name(value)
+		local name = tostring(value)
+		self["name"] = name
+		self["drawings"]["text"]["Text"] = name
+		local keybind = keybind_data[self]
+		local row = keybind and list_drawings[keybind]
+		if row and row["text"] then
+			row["text"]["Text"] = name
+			if keybind["type"] == 2 then
+				local value_width = row["value"]["TextBounds"]["X"]
+				local width = value_width + row["text"]["TextBounds"]["X"] + 18
+				row["text"]["Position"] = udim2_new(0, value_width + 13, 0, 2)
+				row["frame"]["Size"] = udim2_new(0, width, 0, 18)
+				row["inside"]["Size"] = udim2_new(0, width - 2, 0, 16)
+			else
+				local width = row["text"]["TextBounds"]["X"] + 31
+				row["frame"]["Size"] = udim2_new(0, width, 0, 18)
+				row["inside"]["Size"] = udim2_new(0, width - 2, 0, 16)
+			end
+		end
+		return self
+	end
+
+	element.set_text = element.set_name
+
 	function element:set_options(options)
 		self:set_dropdown()
 		self["options"] = options
@@ -6130,9 +6390,10 @@ do
 		if keybind then
 			if not just_keybind then
 				local is_on_not_held = keybind["method"] == 2
-				keybind["value"] = value
-				keybind["activated"] = is_on_not_held or value
-				spawn(on_keybind_change["Fire"], on_keybind_change, keybind, self, is_on_not_held or value)
+				value = keybind["method"] == 4 and true or value
+				keybind["value"] = keybind["type"] == 3 and true or value
+				keybind["activated"] = keybind["method"] == 4 or is_on_not_held or value
+				spawn(on_keybind_change["Fire"], on_keybind_change, keybind, self, keybind["activated"])
 
 				if is_on_not_held then
 					return
@@ -6553,7 +6814,7 @@ do
 		end
 		for _, drawing in self do
 			local type = typeof(drawing)
-			if (type == "Drawing" or type == "Table") and rawget(drawing, "Destroy") then
+			if (type == "Drawing" or type == "Table") and drawing["Destroy"] then
 				drawing["Destroy"](drawing)
 				self[_] = nil
 			end
@@ -7102,6 +7363,7 @@ do
 					for element, keybind in keybind_data do
 						if element ~= 1 then
 							on_keybind_deleted:Fire(keybind, element, true)
+							keybind_data[element] = nil
 						end
 					end
 
@@ -7151,16 +7413,15 @@ do
 											for i = 1, #elements do
 												local element = elements[i]
 												if element[flag_name] == flag then
-													local method = new_keybind["method"]
-
 													new_keybind_data = setmetatable({
-														["method"] = type == 2 and 1 or method,
-														["original_value"] = new_keybind["og_value"],
+														["method"] = new_keybind["method"] or 1,
+														["original_value"] = type == 3 and false or new_keybind["og_value"],
 														["value"] = (type == 4 and "")
-															or (type == 3 and new_flags[element[flag_name]])
-															or (type ~= 3 and new_keybind["value"]),
+															or (type == 3 and true)
+															or new_keybind["value"],
 														["type"] = type,
-														["activated"] = method == 2,
+														["activated"] = new_keybind["method"] == 2 or new_keybind["method"] == 4
+															or (type == 3 and new_flags[element[flag_name]] == true),
 														["element"] = element,
 														["key"] = key,
 													}, keybind)
@@ -7177,15 +7438,15 @@ do
 									for i = 1, #elements do
 										local element = elements[i]
 										if element[flag_name] == flag then
-											local method = new_keybind["method"]
 											new_keybind_data = setmetatable({
-												["method"] = type == 2 and 1 or method,
-												["original_value"] = new_keybind["og_value"],
+												["method"] = new_keybind["method"] or 1,
+												["original_value"] = type == 3 and false or new_keybind["og_value"],
 												["value"] = (type == 4 and "")
-													or (type == 3 and new_flags[element[flag_name]])
-													or (type ~= 3 and new_keybind["value"]),
+													or (type == 3 and true)
+													or new_keybind["value"],
 												["type"] = type,
-												["activated"] = method == 2,
+												["activated"] = new_keybind["method"] == 2 or new_keybind["method"] == 4
+													or (type == 3 and new_flags[element[flag_name]] == true),
 												["element"] = element,
 												["key"] = key,
 											}, keybind)
@@ -7434,6 +7695,12 @@ do
 						flags["skins"] = skins
 					end
 
+					for element, keybind in keybind_data do
+						if type(element) == "table" and keybind["method"] == 4 and keybind["type"] ~= 4 then
+							keybind:set_activated(true)
+						end
+					end
+
 					menu["on_config_loaded"]:Fire()
 				end
 			end
@@ -7452,13 +7719,14 @@ do
 					if data[2]["destroy"] then
 						data[2]["destroy"](data[2])
 						local addons_group = menu["groups"]["addons"]
-
-						local count = #addons_group["ordered_tabs"]
-						local is_visible = addons_group["is_visible"]
-						if count == 0 and is_visible then
-							addons_group["hide"](addons_group)
-						elseif count > 0 and not is_visible then
-							addons_group["show"](addons_group)
+						if addons_group then
+							local count = #addons_group["ordered_tabs"]
+							local is_visible = addons_group["is_visible"]
+							if count == 0 and is_visible then
+								addons_group["hide"](addons_group)
+							elseif count > 0 and not is_visible then
+								addons_group["show"](addons_group)
+							end
 						end
 					end
 					for _, connection in data[3] do
@@ -7502,7 +7770,13 @@ do
 					menu["unload_addon"](name)
 				end
 
-				getfenv(data).__IDENTIFIER = name
+				local addon_environment = setmetatable({
+					__IDENTIFIER = name,
+					menu = menu,
+					flags = flags,
+					addon_data = addon_data,
+				}, { __index = getfenv(data) })
+				setfenv(data, addon_environment)
 
 				local thread = coroutine["create"](data)
 
@@ -8812,6 +9086,7 @@ do
 			config_last_updated:set_visible(false)
 			delete_config:set_visible(false)
 			load_config:set_visible(false)
+			return config_list, config_info, config_editor
 		end
 	end
 

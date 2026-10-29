@@ -30,7 +30,7 @@ local appearance = tab:create_subtab("Appearance")
 local colors = appearance:create_section("Colors", 1, 1)
 ```
 
-`subtab:create_section(name, side, height, y_position)` uses the same section layout as `group:create_section(tab_name, name, side, height, y_position)`. `side` is `1` or `2`; `height` is the fraction of the content area to occupy. For subtabs the default `y_position` leaves room for the subtab strip. For a classic tab without subtabs:
+`subtab:create_section(name, side, height, y_position)` uses the same section layout as `group:create_section(tab_name, name, side, height, y_position)`. `side` is `1` or `2`; `height` is the fraction of the available content area to occupy. Subtab sections fit below the subtab strip and remain inside the tab frame. For a classic tab without subtabs:
 
 ```lua
 local tab = group:create_tab("Main")
@@ -79,7 +79,20 @@ local mode = controls:create_element({ name = "Mode" }, {
 })
 ```
 
-Elements can be hidden or shown with `element:set_visible(boolean)` and removed with `element:remove()`. Elements may include `tip` text in their `info` table. Right-clicking supported elements opens their context menu for settings and keybind actions.
+Elements can be hidden or shown with `element:set_visible(boolean)` and removed with `element:remove()`. `element:set_name(text)` or `element:set_text(text)` changes the visible label, including its keybind-list label. Elements may include `tip` text in their `info` table.
+
+### Keybind assignment and modes
+
+Give a control a keybind field with a flag and a default key. Right-click that assigned key box to attach the control action to it. After it is attached, right-click the assigned key box to choose **toggle**, **hold**, **always**, or **remove keybind**. Unassigned controls do not open this keybind menu.
+
+```lua
+local enabled = controls:create_element({ name = "Enable feature" }, {
+    toggle = { flag = "demo.enabled", default = false },
+    keybind = { flag = "demo.enabled_key", default = Enum.KeyCode.G },
+})
+```
+
+The keybind list tracks active binds even while hidden. Enable “keybinds list” in menu settings or call `menu:show_keybinds()` to display it. Toggle and hold entries appear while active; always entries remain listed. Call `menu:hide_keybinds()` to hide the list.
 
 ## Events and helpers
 
@@ -103,8 +116,11 @@ Other returned helpers include `library.tween(object, properties, easing_style, 
 
 - `menu.new_notification(text, type, duration)` displays a notification. Types `1`, `2`, and `3` represent success, alert, and error.
 - `menu.set_accent_color(color3)` changes the accent at runtime.
+- `menu:set_text(title, subtitle)` changes the header labels. `menu:set_branding({ title = ..., subtitle = ..., logo = ... })` sets both labels and an optional local logo path.
+- `menu:set_logo(path)` loads a local image through `getcustomasset`; paths can be absolute or relative to the library asset folder. Set `getgenv().script_name`, `getgenv().script_version`, and `getgenv().script_logo` before loading to set initial branding.
 - `menu:show_keybinds()` and `menu:hide_keybinds()` show or hide the active keybind list.
-- `menu:setup_configs(group_or_name)` adds a config-management tab with create, load, update, delete, and refresh actions. Config data is stored under the configured folder.
+- `menu:setup_configs(group_or_name)` adds a config group and `configs` tab with create, load, update, delete, and refresh actions. It returns the config list, info, and editor sections. Config data is stored under the configured folder.
+- `addons/SaveManager.luau` is the SaveManager addon. Copy it to `<custom_folder>/addons/SaveManager.luau` (default: `juju recode/addons/SaveManager.luau`), then call `menu:load_addon("SaveManager")`. It creates a `SaveManager` group with a config tab and removes the group when unloaded. Use the addon or call `menu:setup_configs(...)` directly, not both with the same group name.
 - Themes can be selected and managed from the built-in settings interface. `menu:load_theme(name)` loads a theme; `menu.get_theme_list()` returns available theme names.
 - `menu.save_config(name)`, `menu.load_config(name)`, `menu.get_config_list()`, and `menu.get_config_data(data)` provide config helpers.
 - The library stores notification preference, autoload config, favorites, theme selection, and hide-on-load preference in `data.dat`.

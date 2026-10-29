@@ -32,7 +32,10 @@ See [`example.lua`](example.lua) for a complete runnable menu and [`docs.md`](do
 - 125% default UI scale, draggable window, and bottom-right resize grip. The initial window is about 913×675 pixels at that scale.
 - Groups, tabs, optional subtabs, and responsive two-column sections.
 - Toggle, slider, dropdown, textbox, color picker, keybind, info, and button controls.
+- Right-click keybind modes (toggle, hold, always, remove), an active keybind list, and customizable header text/logo.
 - Signals, notifications, themes, configs, favorites, settings popovers, and keybind display.
 - A dark teal palette, Plex font, translucent tinted surfaces, soft glow, and fading stripe accents.
+
+`addons/SaveManager.luau` adds a `SaveManager` group and config tab. Install it under `<custom_folder>/addons/SaveManager.luau`, then run `menu:load_addon("SaveManager")`. For inline setup, `menu:setup_configs("SaveManager")` creates the same config interface.
 
 The library automatically prepares its bundled assets and data under `getgenv().custom_folder` or `juju recode`.

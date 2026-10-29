@@ -16,6 +16,13 @@ assert(type(library) == "table", "library.lua loaded but did not return its API 
 local menu = library.menu
 local flags = library.flags
 
+menu:set_text("Snowfall", "example")
+menu:set_logo("assets/logo.png")
+
+-- This inline setup provides the same config tab as addons/SaveManager.luau.
+local save_manager = menu.create_group("SaveManager")
+menu:setup_configs(save_manager)
+
 local showcase = menu.create_group("Showcase")
 local basics = showcase:create_tab("Basics")
 
@@ -29,6 +36,7 @@ local enabled = controls:create_element({ name = "Enable feature" }, {
 		default = true,
 	},
 	keybind = {
+		flag = "example.enabled_key",
 		default = Enum.KeyCode.G,
 	},
 })

@@ -2,7 +2,17 @@
 -- Run in a Roblox executor environment with the required Drawing/filesystem APIs.
 
 local LIBRARY_URL = "https://raw.githubusercontent.com/hevji/snowfall-ui/main/library.lua"
-local library = loadstring(game:HttpGet(LIBRARY_URL))()
+local request_ok, source = pcall(function()
+	return game:HttpGet(LIBRARY_URL)
+end)
+assert(request_ok and type(source) == "string", "Could not download Snowfall UI: " .. tostring(source))
+assert(type(loadstring) == "function", "This executor does not provide loadstring")
+
+local loader, compile_error = loadstring(source)
+assert(type(loader) == "function", "Could not compile library.lua: " .. tostring(compile_error))
+
+local library = loader()
+assert(type(library) == "table", "library.lua loaded but did not return its API table")
 local menu = library.menu
 local flags = library.flags
 

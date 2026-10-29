@@ -26,6 +26,7 @@ end
 
 local file_path = getgenv().custom_folder or "juju recode"
 local user_input_service = cloneref(game:GetService("UserInputService"))
+local original_mouse_icon_enabled = nil
 local get_mouse_location = user_input_service["GetMouseLocation"]
 local players_service = cloneref(game:GetService("Players"))
 local local_player = players_service["LocalPlayer"]
@@ -8824,6 +8825,7 @@ do
 		if unload then
 			unload()
 		end
+		original_mouse_icon_enabled = user_input_service["MouseIconEnabled"]
 
 		local env = getgenv()
 		local old_drawing = env["fake_drawing"]
@@ -8885,6 +8887,7 @@ do
 				setrawmetatable(instance, mt)
 			end
 
+			user_input_service["MouseIconEnabled"] = original_mouse_icon_enabled
 			old_drawing["_UNLOAD"]()
 		end
 

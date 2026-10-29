@@ -6,7 +6,10 @@ Snowfall UI is a drawing-based Roblox UI library. It creates the window, input h
 
 ```lua
 local source = game:HttpGet("https://raw.githubusercontent.com/hevji/snowfall-ui/main/library.lua")
-local library = loadstring(source)()
+local loader, compile_error = loadstring(source)
+assert(loader, "Could not compile library.lua: " .. tostring(compile_error))
+local library = loader()
+assert(type(library) == "table", "library.lua did not return its API table")
 local menu = library.menu
 local flags = library.flags
 ```
@@ -105,6 +108,7 @@ Other returned helpers include `library.tween(object, properties, easing_style, 
 - Themes can be selected and managed from the built-in settings interface. `menu:load_theme(name)` loads a theme; `menu.get_theme_list()` returns available theme names.
 - `menu.save_config(name)`, `menu.load_config(name)`, `menu.get_config_list()`, and `menu.get_config_data(data)` provide config helpers.
 - The library stores notification preference, autoload config, favorites, theme selection, and hide-on-load preference in `data.dat`.
+- Unload the menu and disconnect its input/render hooks with `getgenv()._JUJU()`. The original Roblox mouse cursor visibility is restored during unload.
 
 ## Complete example
 

@@ -8,7 +8,11 @@ Run this in an environment that supports the Drawing API and the filesystem and 
 
 ```lua
 local url = "https://raw.githubusercontent.com/hevji/snowfall-ui/main/library.lua"
-local library = loadstring(game:HttpGet(url))()
+local source = game:HttpGet(url)
+local loader, compile_error = loadstring(source)
+assert(loader, "Could not compile library.lua: " .. tostring(compile_error))
+local library = loader()
+assert(type(library) == "table", "library.lua did not return its API table")
 
 local menu = library.menu
 local group = menu.create_group("Showcase")

@@ -22,34 +22,9 @@ if not LPH_OBFUSCATED then
 	end
 end
 
--- > ( loader config )
--- the script that loads this library can pass its own settings instead of
--- editing the library. load it like this:
---
---   local library = loadstring(readfile("ui.lua"))({
---       ["name"] = "Snowfall",
---       ["version"] = "1.0",
---       ["ui_scale"] = 1.5,
---       ["logo"] = "my_logo.png",        -- workspace file path (optional)
---       ["logo_data"] = raw_image_bytes, -- or pass the bytes directly (optional)
---       ["logo_is_asset"] = false,       -- true loads "logo" with getcustomasset
---       ["folder"] = "juju recode",      -- asset/data folder (optional)
---   })
---
--- every field is optional and falls back to the defaults below
---
--- the config is kept in one table instead of many local variables because the
--- main chunk is already close to luau's 200 local register limit
-
-local snowfall = ...
-
-if type(snowfall) ~= "table" then
-	snowfall = {}
-end
-
 -- > ( global cheat variables )
 
-local file_path = snowfall["folder"] or getgenv().custom_folder or "juju recode"
+local file_path = getgenv().custom_folder or "juju recode"
 local user_input_service = cloneref(game:GetService("UserInputService"))
 local get_mouse_location = user_input_service["GetMouseLocation"]
 local players_service = cloneref(game:GetService("Players"))
@@ -68,35 +43,6 @@ local color3_lerp = color3_fromrgb()["Lerp"]
 local vector2_new = Vector2["new"]
 local udim2_new = UDim2["new"]
 
--- > ( ui scale )
--- controls the overall size of the menu (1.25 = 125% of the original size)
-local ui_scale = tonumber(snowfall["ui_scale"]) or 1.50
-
--- > ( branding )
--- supplied by the loading script through the config table, so the library
--- itself does not need to be edited and getgenv cannot override it
-local script_name = snowfall["name"] or "Snowfall"
-local script_version = tostring(snowfall["version"] or "1.0")
-
--- optional custom logo:
---   logo = "my_logo.png"       loads the file from the executor workspace
---   logo_data = raw_bytes      uses the bytes directly (skips reading a file)
--- the bundled drawing api turns raw image bytes into a custom asset internally,
--- so files are read with readfile unless logo_is_asset is set to true
-snowfall["get_logo_data"] = function()
-	if snowfall["logo_data"] then
-		return snowfall["logo_data"]
-	end
-
-	local path = snowfall["logo"]
-
-	if path and (not isfile or isfile(path)) then
-		return snowfall["logo_is_asset"] == true and getcustomasset(path) or readfile(path)
-	end
-
-	return readfile(file_path .. "/assets/logo.png")
-end
-
 local math_random = math["random"]
 local clock = os["clock"]
 local delay = task["delay"]
@@ -105,6 +51,7 @@ local clamp = math["clamp"]
 local floor = math["floor"]
 local wait = task["wait"]
 local sqrt = math["sqrt"]
+local type = type
 
 local shadow_image_data = base64_decode(
 	"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAQAAABpN6lAAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAHdElNRQfiAQkTIxqKm+UhAAACvElEQVR42u2dzY7aMBhFjxPHEzJQBolRq77/27XSwBCSkD/PwinS7LpBVwrfeYLjI4Ozuy6Cw+HIyHBkOMCxTiIQmYnMzEQi0S9Hz/EUePIlxDpJB58YGRiZmJlTgIKCQMkLYYmwTtLhe2509AwM6QbkFJRUbKnYEChWHGCgp6WhpoF0AzI8gYodB/bs2BDI1aYPYqKn5cIZR7oPkyejoGTLgZ+888aOEq82fRAjHRdOlEBkZGTwODwvVOx55zdH9rxSqE0fxMCVMxXQ0dHS4TwZOYENO9448osDW4La9EH01GyAhhOfBHKy9Ar4JcGeA0d2Kw5QAu3yT+fJcB7IyJdn8JUtO36sOAB0vFISKNJz7+9fgelTKBAIlGrThxEI3z743Fpf/P/GAqgF1FgAtYAaC6AWUGMB1AJqLIBaQI0FUAuosQBqATUWQC2gxgKoBdRYALWAGgugFlBjAdQCaiyAWkCNBVALqLEAagE1FkAtoMYCqAXUWAC1gBoLoBZQYwHUAmosgFpAjQVQC6ixAGoBNRZALaDGAqgF1FgAtYAaC6AWUGMB1AJqLIBaQI0FUAuosQBqATUWQC2gxgKoBdRYALWAGgugFlBjAdQCaiyAWkCNBVALqLEAagE1FkAtoMYCqAXUWAC1gBoLoBZQYwHUAmosgFpAjQVQC6ixAGoBNRZALaDGAqgF1FgAtYAaC6AWUGMB1AJqLIBaQI0nfpsi7enp1VIPI53uPriaVmfT9ORAT8eVmhJWvDZ3oea6TK5OzOkGzIz3Lc4N0K04QM0HZy609IzMRM98nyI9UQHt6ic3/3JaEkzMnsjIjYYzJdA8xejqH8403BjTDRjoqHFAx+lJZnc/qOkYmP3yD9AAkY7PJxpe7hnTT2BiAGZG2ieb3p6ILj75+LqL4O7Dq245/HoDpAjx32cQ8QtpRORenSWX2AAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xOdTWsmQAAAAASUVORK5CYII="
@@ -161,44 +108,6 @@ local remove = LPH_NO_VIRTUALIZE(function(tbl, index)
 		tbl[i] = tbl[i + 1]
 	end
 	tbl[length] = nil
-end)
-
-snowfall["truncate_text"] = LPH_NO_VIRTUALIZE(function(label, value, max_width)
-	value = value or ""
-	label["Text"] = value
-
-	if max_width <= 0 then
-		label["Text"] = ""
-		return
-	end
-
-	if label["TextBounds"]["X"] <= max_width then
-		return
-	end
-
-	local length = #value
-	while length > 0 do
-		length -= 1
-		label["Text"] = value:sub(1, length) .. "..."
-
-		if label["TextBounds"]["X"] <= max_width then
-			return
-		end
-	end
-
-	label["Text"] = ""
-end)
-
-snowfall["fit_text"] = LPH_NO_VIRTUALIZE(function(label, value, max_width, min_size)
-	label["Text"] = value or ""
-
-	local size = label["Size"]
-	while label["TextBounds"]["X"] > max_width and size > (min_size or size) do
-		size -= 1
-		label["Size"] = size
-	end
-
-	snowfall["truncate_text"](label, value, max_width)
 end)
 
 -- > ( signal library )
@@ -370,34 +279,26 @@ end
 
 local menu = {
 	on_config_loaded = signal["new"](),
-	accent = color3_fromrgb(255, 213, 253),
+	accent = color3_fromrgb(153, 216, 222),
 	colors = {
-		-- Main window background: almost pure black
-		["background"] = color3_fromrgb(8, 8, 8),
-		-- Sidebar surface: slightly lighter black
-		["section"] = color3_fromrgb(14, 14, 14),
-		-- Panel / control background: charcoal
-		["panel"] = color3_fromrgb(22, 22, 22),
-		-- Thin low‑contrast borders
-		["border"] = color3_fromrgb(38, 38, 38),
-		-- Primary accent: muted cyan / teal
-		["accent"] = color3_fromrgb(0, 180, 180),
-		["logo"] = color3_fromrgb(0, 180, 180),
-		["juju"] = color3_fromrgb(0, 180, 180),
-		["build"] = color3_fromrgb(0, 180, 180),
-		["cursor"] = color3_fromrgb(0, 180, 180),
-		-- Text hierarchy
-		["active_text"] = color3_fromrgb(230, 230, 230),   -- primary (soft white)
-		["inactive_text"] = color3_fromrgb(140, 140, 140), -- secondary (medium gray)
-		["dark_text"] = color3_fromrgb(110, 110, 110),     -- disabled / muted
-		["keybind_text"] = color3_fromrgb(180, 180, 180),
-		-- Interaction highlights
-		["highlighted"] = color3_fromrgb(30, 30, 30),      -- hover / focus bg
-		["success"] = color3_fromrgb(0, 200, 120),
-		["error"] = color3_fromrgb(220, 60, 60),
-		["alert"] = color3_fromrgb(255, 180, 0),
-		["image"] = color3_fromrgb(100, 100, 100),
-		["shadow"] = color3_fromrgb(0, 0, 0),
+		["shadow"] = color3_fromrgb(153, 216, 222),
+		["accent"] = color3_fromrgb(153, 216, 222),
+		["active_text"] = color3_fromrgb(224, 224, 224),
+		["keybind_text"] = color3_fromrgb(190, 190, 190),
+		["border"] = color3_fromrgb(37, 41, 43),
+		["inactive_text"] = color3_fromrgb(126, 126, 126),
+		["highlighted"] = color3_fromrgb(64, 91, 96),
+		["dark_text"] = color3_fromrgb(95, 111, 113),
+		["image"] = color3_fromrgb(118, 126, 127),
+		["section"] = color3_fromrgb(8, 9, 10),
+		["background"] = color3_fromrgb(3, 4, 5),
+		["success"] = color3_fromrgb(153, 216, 222),
+		["error"] = color3_fromrgb(39, 60, 96),
+		["alert"] = color3_fromrgb(30, 51, 61),
+		["logo"] = color3_fromrgb(153, 216, 222),
+		["juju"] = color3_fromrgb(153, 216, 222),
+		["build"] = color3_fromrgb(153, 216, 222),
+		["cursor"] = color3_fromrgb(153, 216, 222),
 	},
 	settings = {},
 	notifications = {},
@@ -594,12 +495,8 @@ do
 	local cog_image_data = base64_decode(
 		"iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAMAAAC67D+PAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAQKAAAECgBJz8A6wAAABh0RVh0U29mdHdhcmUAUGFpbnQuTkVUIDUuMS4y+7wDtgAAALZlWElmSUkqAAgAAAAFABoBBQABAAAASgAAABsBBQABAAAAUgAAACgBAwABAAAAAgAAADEBAgAQAAAAWgAAAGmHBAABAAAAagAAAAAAAAB3mgEA6AMAAHeaAQDoAwAAUGFpbnQuTkVUIDUuMS4yAAMAAJAHAAQAAAAwMjMwAaADAAEAAAABAAAABaAEAAEAAACUAAAAAAAAAAIAAQACAAQAAABSOTgAAgAHAAQAAAAwMTAwAAAAAEyPNqYn0aVIAAAALElEQVQYV2NgBAIGCAmioQhIQACQCZaGYBAJoZGYSApgUhATYAiikJGRkREACr4AMZ+SUSoAAAAASUVORK5CYII="
 	)
-	local menu_position = udim2_new(
-		0,
-		camera["ViewportSize"]["X"] / 2 - (575 * ui_scale) / 2,
-		0,
-		camera["ViewportSize"]["Y"] / 2 - (450 * ui_scale) * 0.5
-	)
+	local menu_position =
+		udim2_new(0, camera["ViewportSize"]["X"] / 2 - 575 / 2, 0, camera["ViewportSize"]["Y"] / 2 - 450 * 0.5)
 
 	local half_transparency = { Transparency = 0.5 }
 	local stop_panel_search = nil
@@ -643,7 +540,6 @@ do
 					["size"] = class == "Text" and 12 or udim2_new(0, 0, 0, 0),
 					["real_size"] = class == "Text" and 12 or vector2_new(0, 0),
 					["object"] = object,
-					["class"] = class,
 					["children"] = {},
 					["parent"] = false,
 					["is_rendering"] = false,
@@ -677,7 +573,6 @@ do
 				["size"] = class == "Text" and 12 or udim2_new(0, 0, 0, 0),
 				["real_size"] = class == "Text" and 12 or vector2_new(0, 0),
 				["object"] = object,
-				["class"] = class,
 				["children"] = {},
 				["parent"] = false,
 				["is_rendering"] = false,
@@ -708,19 +603,16 @@ do
 		local update_proxy_position
 		update_proxy_position = LPH_NO_VIRTUALIZE(function(proxy, position)
 			local parent = rawget(proxy, "parent")
-			-- root drawings are already given screen space coordinates (cursor, popups, notifications),
-			-- so only offsets relative to a parent get scaled here
-			local real_position = vector2_new(position["X"]["Offset"], position["Y"]["Offset"])
+			local real_position = parent and parent["real_position"]
+				or vector2_new(position["X"]["Offset"], position["Y"]["Offset"])
 
 			if parent then
 				local parent_position = parent["real_position"]
 				local real_parent_size = parent["real_size"]
 
 				real_position = vector2_new(
-					(parent_position["X"] + real_parent_size["X"] * position["X"]["Scale"])
-						+ position["X"]["Offset"] * ui_scale,
-					(parent_position["Y"] + real_parent_size["Y"] * position["Y"]["Scale"])
-						+ position["Y"]["Offset"] * ui_scale
+					(parent_position["X"] + real_parent_size["X"] * position["X"]["Scale"]) + position["X"]["Offset"],
+					(parent_position["Y"] + real_parent_size["Y"] * position["Y"]["Scale"]) + position["Y"]["Offset"]
 				)
 			end
 
@@ -761,14 +653,14 @@ do
 			end
 
 			local parent = rawget(proxy, "parent")
-			local real_size = vector2_new(size["X"]["Offset"] * ui_scale, size["Y"]["Offset"] * ui_scale)
+			local real_size = parent and parent["real_size"] or vector2_new(size["X"]["Offset"], size["Y"]["Offset"])
 
 			if parent then
 				local parent_size = parent["real_size"]
 
 				real_size = vector2_new(
-					(parent_size["X"] * size["X"]["Scale"]) + size["X"]["Offset"] * ui_scale,
-					(parent_size["Y"] * size["Y"]["Scale"]) + size["Y"]["Offset"] * ui_scale
+					(parent_size["X"] * size["X"]["Scale"]) + size["X"]["Offset"],
+					(parent_size["Y"] * size["Y"]["Scale"]) + size["Y"]["Offset"]
 				)
 			end
 
@@ -805,9 +697,6 @@ do
 			elseif property == "Visible" then
 				self["visible"] = value
 				update_proxy_visibility(self, value)
-			elseif property == "Size" and type(value) == "number" and rawget(self, "class") == "Text" then
-				self["size"] = value
-				self["object"]["Size"] = round(value * ui_scale)
 			elseif
 				(property == "Size" or property == "tween_size")
 				and type(value) ~= "number"
@@ -821,15 +710,6 @@ do
 		end
 
 		function drawing_proxy:__index(property)
-			if property == "TextBounds" and rawget(self, "class") == "Text" then
-				-- keep layout calculations in the original (unscaled) coordinate space
-				local bounds = self["object"]["TextBounds"]
-
-				return vector2_new(bounds["X"] / ui_scale, bounds["Y"] / ui_scale)
-			elseif property == "Size" and rawget(self, "class") == "Text" then
-				return self["size"]
-			end
-
 			return property == "tween_size" and self["size"]
 				or property == "tween_position" and self["position"]
 				or property == "Destroy" and self["destroy"]
@@ -856,7 +736,7 @@ do
 		["Position"] = menu_position,
 		["Size"] = udim2_new(0, 575, 0, 450),
 		["Color"] = menu["colors"]["background"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 1,
 		["Visible"] = false,
@@ -866,18 +746,16 @@ do
 		["Position"] = udim2_new(0, 1, 0, 1),
 		["Size"] = udim2_new(1, -2, 1, -2),
 		["Color"] = menu["colors"]["section"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 1,
 		["Parent"] = frame,
 		["Visible"] = false,
 	})
 
-	snowfall["logo_data"] = snowfall["logo_data"] or snowfall["get_logo_data"]()
-
 	local logo = drawing_proxy["new"]("Image", {
 		["Color"] = menu["colors"]["accent"],
-		["Data"] = snowfall["logo_data"],
+		["Data"] = readfile(file_path .. "/assets/logo.png"),
 		["Position"] = udim2_new(0, 15, 0, 15),
 		["Parent"] = inside,
 		["Size"] = udim2_new(0, 35, 0, 35),
@@ -887,11 +765,11 @@ do
 
 	local juju_text = drawing_proxy["new"]("Text", {
 		["Font"] = 1,
-		["Color"] = menu["colors"]["active_text"],
-		["Text"] = script_name,
+		["Color"] = color3_fromrgb(255, 255, 255),
+		["Text"] = getgenv().script_name or "juju",
 		["Parent"] = logo,
 		["Position"] = udim2_new(1, 5, 0, 3),
-		["Size"] = 13,
+		["Size"] = 14,
 		["Visible"] = true,
 		["Transparency"] = 1,
 	})
@@ -899,20 +777,13 @@ do
 	local build_text = drawing_proxy["new"]("Text", {
 		["Font"] = 1,
 		["Color"] = menu["colors"]["accent"],
-		["Text"] = script_version,
+		["Text"] = getgenv().script_version or "live",
 		["Parent"] = logo,
 		["Position"] = udim2_new(1, 5, 0, 19),
-		["Size"] = 12,
+		["Size"] = 14,
 		["Visible"] = true,
 		["Transparency"] = 1,
 	})
-
-	-- keep the name and version inside the sidebar instead of letting them clip into the menu
-	-- (101 sidebar width - 15 logo offset - 35 logo width - 5 text offset - 4 padding)
-	snowfall["fit_text"](juju_text, script_name, 42, 9)
-
-	build_text["Size"] = juju_text["Size"]
-	snowfall["fit_text"](build_text, script_version, 42, 9)
 
 	local right_side = drawing_proxy["new"]("Square", {
 		["Parent"] = inside,
@@ -999,7 +870,7 @@ do
 		["Size"] = udim2_new(0, 78, 0, 20),
 		["Color"] = menu["colors"]["border"],
 		["Transparency"] = 1,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Visible"] = false,
 	})
@@ -1009,7 +880,7 @@ do
 		["Position"] = udim2_new(0, 1, 0, 1),
 		["Size"] = udim2_new(1, -2, 1, -2),
 		["Color"] = menu["colors"]["background"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 1,
 		["Visible"] = true,
@@ -1021,7 +892,7 @@ do
 		["Size"] = udim2_new(0, 78, 0, 20),
 		["Color"] = menu["colors"]["border"],
 		["Transparency"] = 1,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["ZIndex"] = 999,
 		["Visible"] = false,
@@ -1032,7 +903,7 @@ do
 		["Position"] = udim2_new(0, 1, 0, 1),
 		["Size"] = udim2_new(1, -2, 1, -2),
 		["Color"] = menu["colors"]["background"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 1,
 		["ZIndex"] = 1000,
@@ -1055,7 +926,7 @@ do
 		["Position"] = menu_position,
 		["Size"] = udim2_new(0, 575, 0, 450),
 		["Color"] = menu["colors"]["background"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 0,
 		["ZIndex"] = 1000,
@@ -1066,7 +937,7 @@ do
 		["Position"] = udim2_new(0, 1, 0, 1),
 		["Size"] = udim2_new(1, -2, 1, -2),
 		["Color"] = menu["colors"]["section"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 1,
 		["Parent"] = drag_frame,
@@ -1076,7 +947,7 @@ do
 
 	local drag_logo = drawing_proxy["new"]("Image", {
 		["Color"] = menu["colors"]["accent"],
-		["Data"] = snowfall["logo_data"],
+		["Data"] = readfile(file_path .. "/assets/logo.png"),
 		["Position"] = udim2_new(0.5, -40, 0.5, -40),
 		["Parent"] = drag_inside,
 		["Size"] = udim2_new(0, 80, 0, 80),
@@ -1128,7 +999,7 @@ do
 		["Size"] = udim2_new(0, 74, 0, 20),
 		["Color"] = menu["colors"]["border"],
 		["Transparency"] = 0,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["ZIndex"] = 10,
 		["Visible"] = false,
@@ -1153,7 +1024,7 @@ do
 		["Size"] = udim2_new(0, 72, 0, 18),
 		["Color"] = color3_fromrgb(15, 15, 15),
 		["Transparency"] = 0,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Parent"] = list_frame,
 		["ZIndex"] = 11,
@@ -1390,7 +1261,7 @@ do
 				["Size"] = udim2_new(0, 74, 0, 18),
 				["Color"] = menu["colors"]["border"],
 				["Transparency"] = 0,
-				["Rounding"] = 3,
+				["Rounding"] = 4,
 				["Parent"] = list_frame,
 				["Data"] = pixel_image_data,
 				["Visible"] = false,
@@ -1401,7 +1272,7 @@ do
 				["Size"] = udim2_new(0, 72, 0, 18),
 				["Color"] = menu["colors"]["background"],
 				["Transparency"] = 0,
-				["Rounding"] = 3,
+				["Rounding"] = 4,
 				["Data"] = pixel_image_data,
 				["Parent"] = keybind_frame,
 				["Visible"] = true,
@@ -1463,7 +1334,7 @@ do
 				["Size"] = udim2_new(0, 74, 0, 18),
 				["Color"] = menu["colors"]["border"],
 				["Transparency"] = 0,
-				["Rounding"] = 3,
+				["Rounding"] = 4,
 				["Parent"] = list_frame,
 				["Data"] = pixel_image_data,
 				["Visible"] = false,
@@ -1474,7 +1345,7 @@ do
 				["Size"] = udim2_new(0, 72, 0, 18),
 				["Color"] = menu["colors"]["background"],
 				["Transparency"] = 0,
-				["Rounding"] = 3,
+				["Rounding"] = 4,
 				["Data"] = pixel_image_data,
 				["Parent"] = keybind_frame,
 				["Visible"] = true,
@@ -1547,7 +1418,7 @@ do
 				["Size"] = UDim2.new(0, 74, 0, 18),
 				["Color"] = menu["colors"]["border"],
 				["Transparency"] = 0,
-				["Rounding"] = 3,
+				["Rounding"] = 4,
 				["Parent"] = list_frame,
 				["Data"] = pixel_image_data,
 				["Visible"] = false,
@@ -1558,7 +1429,7 @@ do
 				["Size"] = UDim2.new(0, 72, 0, 18),
 				["Color"] = menu["colors"]["background"],
 				["Transparency"] = 0,
-				["Rounding"] = 3,
+				["Rounding"] = 4,
 				["Data"] = pixel_image_data,
 				["Parent"] = keybind_frame,
 				["Visible"] = true,
@@ -2294,7 +2165,7 @@ do
 		["Size"] = udim2_new(0, 0, 0, 15),
 		["Color"] = menu["colors"]["border"],
 		["Transparency"] = 0,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["ZIndex"] = 1003,
 		["Visible"] = false,
@@ -2305,7 +2176,7 @@ do
 		["Position"] = udim2_new(0, 1, 0, 1),
 		["Size"] = udim2_new(1, -2, 1, -2),
 		["Color"] = menu["colors"]["background"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 0,
 		["ZIndex"] = 1004,
@@ -2370,13 +2241,11 @@ do
 		local border = element["drawings"]["dropdown_border"]
 		local position = border["real_position"]
 		local size = border["real_size"]
-		-- the dropdown root is not scaled by its own position, so convert its width back to layout space
-		local width = size["X"] / ui_scale
-		dropdown_border["Position"] = udim2_new(0, position["X"], 0, position["Y"] + 15 * ui_scale)
+		dropdown_border["Position"] = udim2_new(0, position["X"], 0, position["Y"] + 15)
 		dropdown_border["Visible"] = true
 		tween(
 			dropdown_border,
-			{ tween_position = udim2_new(0, position["X"], 0, position["Y"] + 18 * ui_scale), Transparency = 1 },
+			{ tween_position = udim2_new(0, position["X"], 0, position["Y"] + 18), Transparency = 1 },
 			circular,
 			out,
 			0.15
@@ -2384,8 +2253,8 @@ do
 		tween(dropdown_inside, show_transparency, circular, out, 0.15)
 
 		local options = element["options"]
-		dropdown_border["Size"] = udim2_new(0, width, 0, (8 + #options * 12))
-		dropdown_inside["Size"] = udim2_new(0, width - 2, 0, (8 + #options * 12) - 2)
+		dropdown_border["Size"] = udim2_new(0, size["X"], 0, (8 + #options * 12))
+		dropdown_inside["Size"] = udim2_new(0, size["X"] - 2, 0, (8 + #options * 12) - 2)
 
 		local selected_options = flags[element["dropdown_flag"]]
 
@@ -2474,7 +2343,7 @@ do
 		["Size"] = udim2_new(0, 100, 0, 15),
 		["Color"] = menu["colors"]["border"],
 		["Transparency"] = 0,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["ZIndex"] = 998,
 		["Visible"] = false,
@@ -2485,7 +2354,7 @@ do
 		["Position"] = udim2_new(0, 1, 0, 1),
 		["Size"] = udim2_new(1, -2, 1, -2),
 		["Color"] = menu["colors"]["background"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 0,
 		["ZIndex"] = 999,
@@ -2497,7 +2366,7 @@ do
 		["Size"] = udim2_new(0, 170, 0, 20),
 		["Color"] = menu["colors"]["border"],
 		["Transparency"] = 0,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["ZIndex"] = 998,
 		["Visible"] = false,
@@ -2508,7 +2377,7 @@ do
 		["Position"] = udim2_new(0, 1, 0, 1),
 		["Size"] = udim2_new(1, -2, 1, -2),
 		["Color"] = menu["colors"]["background"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 0,
 		["ZIndex"] = 999,
@@ -2973,7 +2842,7 @@ do
 			["Visible"] = true,
 			["ZIndex"] = 999,
 			["Data"] = pixel_image_data,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 		})
 
 		local button_text = drawing_proxy["new"]("Text", {
@@ -3112,7 +2981,7 @@ do
 		["Size"] = udim2_new(0, 185, 0, 221),
 		["Color"] = menu["colors"]["border"],
 		["Transparency"] = 0,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["ZIndex"] = 998,
 		["Visible"] = false,
@@ -3123,7 +2992,7 @@ do
 		["Position"] = udim2_new(0, 1, 0, 1),
 		["Size"] = udim2_new(1, -2, 1, -2),
 		["Color"] = menu["colors"]["background"],
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 0,
 		["ZIndex"] = 999,
@@ -3136,7 +3005,7 @@ do
 		["Size"] = udim2_new(0, 163, 0, 163),
 		["Color"] = color3_fromrgb(255, 255, 255),
 		["Transparency"] = 1,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["ZIndex"] = 1000,
 		["Visible"] = true,
@@ -3148,7 +3017,7 @@ do
 		["Size"] = udim2_new(0, 163, 0, 163),
 		["Color"] = color3_fromrgb(255, 0, 0),
 		["Transparency"] = 1,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = readfile(file_path .. "/assets/saturation.png"),
 		["ZIndex"] = 1001,
 		["Visible"] = true,
@@ -3171,7 +3040,7 @@ do
 		["Size"] = udim2_new(0, 163, 0, 8),
 		["Color"] = color3_fromrgb(255, 255, 255),
 		["Transparency"] = 1,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = base64_decode(
 			"iVBORw0KGgoAAAANSUhEUgAAAKAAAAAICAIAAADx4mP5AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMvu8A7YAAAC2ZVhJZklJKgAIAAAABQAaAQUAAQAAAEoAAAAbAQUAAQAAAFIAAAAoAQMAAQAAAAIAAAAxAQIAEAAAAFoAAABphwQAAQAAAGoAAAAAAAAAYAAAAAEAAABgAAAAAQAAAFBhaW50Lk5FVCA1LjEuMgADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlAAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAADp1fY4ytpsegAAAEVJREFUWEftkTEKACAQw6r/f7TgrTf0EJeSTA10yyr2pUarzmekzuefOp8XdT4jdT69CqIhcDgEDofA4RA4HAKHQ+BopAN55gMK+LqL+AAAAABJRU5ErkJggg=="
 		),
@@ -3208,7 +3077,7 @@ do
 		["Size"] = udim2_new(0, 163, 0, 8),
 		["Color"] = color3_fromrgb(255, 255, 255),
 		["Transparency"] = 1,
-		["Rounding"] = 3,
+		["Rounding"] = 4,
 		["Data"] = base64_decode(
 			"iVBORw0KGgoAAAANSUhEUgAAAKAAAAAICAIAAADx4mP5AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMvu8A7YAAAC2ZVhJZklJKgAIAAAABQAaAQUAAQAAAEoAAAAbAQUAAQAAAFIAAAAoAQMAAQAAAAIAAAAxAQIAEAAAAFoAAABphwQAAQAAAGoAAAAAAAAAYAAAAAEAAABgAAAAAQAAAFBhaW50Lk5FVCA1LjEuMgADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlAAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAADp1fY4ytpsegAAAHJJREFUWEftkW0LgCAMhM9ArP7/b60gSmlGWOILfRz3cIzbhDE54y0wieak5qZ7fjiswIKr5ubHfIOR7U3FI1ra7Wv7Y0q18iTVnenvb6Vt5enTRj/Cy/ZOxVOKGkBUw4CVw4CVw4CVw4CVw4CVw4BVAwRG9lMU6VQQuwAAAABJRU5ErkJggg=="
 		),
@@ -3267,12 +3136,11 @@ do
 
 	create_click_connection(colorpicker_border, colorpicker_saturation, function(position)
 		local frame_position = colorpicker_saturation["real_position"]
-		local frame_size = colorpicker_saturation["real_size"]
 		local frame_position_x = frame_position["X"]
 		local frame_position_y = frame_position["Y"]
 
-		actives["colorpicker_saturation"] = clamp((position["X"] - frame_position_x) / frame_size["X"], 0, 1)
-		actives["colorpicker_value"] = clamp((frame_size["Y"] - (position["Y"] - frame_position_y)) / frame_size["Y"], 0, 1)
+		actives["colorpicker_saturation"] = clamp((position["X"] - frame_position_x) / 163, 0, 1)
+		actives["colorpicker_value"] = clamp((163 - (position["Y"] - frame_position_y)) / 163, 0, 1)
 
 		set_colorpicker_color(
 			Color3.fromHSV(actives["colorpicker_hue"], actives["colorpicker_saturation"], actives["colorpicker_value"]),
@@ -3282,8 +3150,8 @@ do
 		moving = create_connection(mouse["Move"], function()
 			local position = get_mouse_location(user_input_service)
 
-			actives["colorpicker_saturation"] = clamp((position["X"] - frame_position_x) / frame_size["X"], 0, 1)
-			actives["colorpicker_value"] = clamp((frame_size["Y"] - (position["Y"] - frame_position_y)) / frame_size["Y"], 0, 1)
+			actives["colorpicker_saturation"] = clamp((position["X"] - frame_position_x) / 163, 0, 1)
+			actives["colorpicker_value"] = clamp((163 - (position["Y"] - frame_position_y)) / 163, 0, 1)
 
 			set_colorpicker_color(
 				Color3.fromHSV(
@@ -3298,9 +3166,8 @@ do
 
 	create_click_connection(colorpicker_border, colorpicker_hue, function(position)
 		local frame_position_x = colorpicker_hue["real_position"]["X"]
-		local frame_size_x = colorpicker_hue["real_size"]["X"]
 
-		actives["colorpicker_hue"] = clamp((position["X"] - frame_position_x) / frame_size_x, 0, 1)
+		actives["colorpicker_hue"] = clamp((position["X"] - frame_position_x) / 163, 0, 1)
 
 		set_colorpicker_color(
 			Color3.fromHSV(actives["colorpicker_hue"], actives["colorpicker_saturation"], actives["colorpicker_value"]),
@@ -3309,7 +3176,7 @@ do
 
 		moving = create_connection(mouse["Move"], function()
 			actives["colorpicker_hue"] =
-				clamp((get_mouse_location(user_input_service)["X"] - frame_position_x) / frame_size_x, 0, 1)
+				clamp((get_mouse_location(user_input_service)["X"] - frame_position_x) / 158, 0, 1)
 			set_colorpicker_color(
 				Color3.fromHSV(
 					actives["colorpicker_hue"],
@@ -3323,13 +3190,12 @@ do
 
 	create_click_connection(colorpicker_border, colorpicker_transparency, function(position)
 		local frame_position_x = colorpicker_transparency["real_position"]["X"]
-		local frame_size_x = colorpicker_transparency["real_size"]["X"]
 
-		set_colorpicker_transparency(clamp(1 - (position["X"] - frame_position_x) / frame_size_x, 0, 1), true)
+		set_colorpicker_transparency(clamp(1 - (position["X"] - frame_position_x) / 163, 0, 1), true)
 
 		moving = create_connection(mouse["Move"], function()
 			set_colorpicker_transparency(
-				clamp(1 - (get_mouse_location(user_input_service)["X"] - frame_position_x) / frame_size_x, 0, 1),
+				clamp(1 - (get_mouse_location(user_input_service)["X"] - frame_position_x) / 163, 0, 1),
 				true
 			)
 		end)
@@ -4687,7 +4553,7 @@ do
 			["Size"] = udim2_new(0.5, -5, size, y_position ~= 0 and -10 or 0),
 			["Color"] = menu["colors"]["border"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = 2,
 			["Visible"] = true,
@@ -4698,7 +4564,7 @@ do
 			["Size"] = udim2_new(1, -2, 1, -1),
 			["Color"] = menu["colors"]["section"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = 3,
 			["Visible"] = true,
@@ -4785,7 +4651,7 @@ do
 			["Size"] = udim2_new(0.5, -5, 1, 0),
 			["Color"] = menu["colors"]["border"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["Visible"] = true,
 		})
@@ -4795,7 +4661,7 @@ do
 			["Size"] = udim2_new(1, -2, 1, -1),
 			["Color"] = menu["colors"]["section"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["Visible"] = true,
 		})
@@ -4842,7 +4708,7 @@ do
 			["Size"] = udim2_new(1, 0, 0, 20),
 			["Color"] = menu["colors"]["border"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = zindex,
 			["Visible"] = true,
@@ -4853,7 +4719,7 @@ do
 			["Size"] = udim2_new(1, -2, 1, -2),
 			["Color"] = menu["colors"]["background"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = zindex,
 			["Visible"] = true,
@@ -4935,7 +4801,7 @@ do
 			["Size"] = udim2_new(1, 0, 0, 20),
 			["Color"] = menu["colors"]["border"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["Visible"] = false,
 		})
@@ -4945,7 +4811,7 @@ do
 			["Size"] = udim2_new(1, -2, 1, -2),
 			["Color"] = menu["colors"]["background"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = 2,
 			["Visible"] = true,
@@ -5303,46 +5169,6 @@ do
 
 	-- > ( elements )
 
-	function element:update_text_clip()
-		local text = self["drawings"] and self["drawings"]["text"]
-		local full_name = self["full_name"]
-
-		if not text or self["hide_name"] or not full_name or full_name == "" then
-			return
-		end
-
-		local drawings = self["drawings"]
-		local right_padding = 0
-
-		local keybind_border = drawings["keybind_border"]
-		if keybind_border then
-			right_padding = math["max"](right_padding, keybind_border["real_size"]["X"] / ui_scale + 8)
-		end
-
-		local colorpicker_border = drawings["colorpicker_border"]
-		if colorpicker_border then
-			right_padding = math["max"](right_padding, colorpicker_border["real_size"]["X"] / ui_scale + 8)
-		end
-
-		local info_text = drawings["info_text"]
-		if info_text and info_text["Text"] ~= "" then
-			right_padding = math["max"](right_padding, info_text["TextBounds"]["X"] + 8)
-		end
-
-		local cog_icon = drawings["cog_icon"]
-		if cog_icon then
-			right_padding = math["max"](right_padding, cog_icon["real_size"]["X"] / ui_scale + 6)
-		end
-
-		local frame = self["frame"]
-		local available_width = frame["real_size"]["X"] / ui_scale
-			- (self["name_left_offset"] or 0)
-			- right_padding
-			- 2
-
-		snowfall["truncate_text"](text, full_name, available_width)
-	end
-
 	function element.new(info, elements)
 		local position = info["position"]
 		local parent = info["parent"]
@@ -5375,9 +5201,6 @@ do
 			["visible"] = true,
 			["section"] = info["section"],
 			["name"] = info["text"],
-			["full_name"] = info["text"],
-			["name_left_offset"] = 0,
-			["hide_name"] = false,
 			["old_visible"] = true,
 		}, element)
 
@@ -5386,22 +5209,15 @@ do
 
 		for element, properties in elements do
 			if element == "toggle" then
-				new_element["name_left_offset"] = 17
 				text["tween_position"] += udim2_new(0, 17, 0, 0)
-
-				local is_risky = properties["risky"] == true
-				local border_color = is_risky and color3_fromrgb(180, 60, 60) or menu["colors"]["border"]
-				local check_color = is_risky and color3_fromrgb(220, 80, 80) or menu["colors"]["accent"]
-				local label_color = is_risky and color3_fromrgb(180, 100, 100) or menu["colors"]["inactive_text"]
-				text["Color"] = label_color
 
 				local toggle_border = drawing_proxy["new"]("Image", {
 					["Parent"] = frame,
 					["Position"] = udim2_new(0, 0, 0, 0),
 					["Size"] = udim2_new(0, 12, 0, 12),
-					["Color"] = border_color,
+					["Color"] = menu["colors"]["border"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["ZIndex"] = zindex + 1,
 					["Visible"] = true,
@@ -5412,7 +5228,7 @@ do
 					["Size"] = udim2_new(1, -2, 1, -2),
 					["Color"] = menu["colors"]["background"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["ZIndex"] = zindex + 2,
 					["Visible"] = true,
@@ -5430,21 +5246,20 @@ do
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
 					["Data"] = checkmark_image_data,
-					["Transparency"] = 1,
+					["Transparency"] = 0,
 					["ZIndex"] = zindex + 3,
-					["Color"] = check_color,
+					["Color"] = menu["colors"]["accent"],
 					["Visible"] = true,
 				})
 
 				new_element["drawings"]["toggle_border"] = toggle_border
 				new_element["drawings"]["toggle_inside"] = toggle_inside
 				new_element["drawings"]["checkmark"] = checkmark
-				new_element["_risky"] = is_risky
 
 				create_hover_connection(parent, toggle_click, function()
-					tween(toggle_border, { Color = is_risky and color3_fromrgb(200, 80, 80) or menu["colors"]["highlighted"] }, circular, out, 0.17)
+					tween(toggle_border, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
 				end, function()
-					tween(toggle_border, { Color = border_color }, circular, out, 0.17)
+					tween(toggle_border, { Color = menu["colors"]["border"] }, circular, out, 0.17)
 				end)
 
 				new_element["on_toggle_change"] = signal["new"]()
@@ -5465,19 +5280,6 @@ do
 						open_context(keybind_data[new_element] and { 2, 1 } or { 1 }, new_element, position)
 					end)
 				end
-			elseif element == "separator" then
-				total_y_size += 8
-				local sep = drawing_proxy["new"]("Square", {
-					["Parent"] = frame,
-					["Position"] = udim2_new(0, 10, 0, total_y_size - 8),
-					["Size"] = udim2_new(1, -20, 0, 1),
-					["Color"] = menu["colors"]["border"],
-					["Transparency"] = 0.7,
-					["Filled"] = true,
-					["Visible"] = true,
-					["ZIndex"] = zindex + 1,
-				})
-				new_element["drawings"]["separator"] = sep
 			elseif element == "slider" then
 				total_y_size += 14
 
@@ -5487,7 +5289,7 @@ do
 					["Size"] = udim2_new(1, 0, 0, 12),
 					["Color"] = menu["colors"]["border"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["ZIndex"] = zindex + 1,
 					["Visible"] = true,
@@ -5496,8 +5298,8 @@ do
 					["Parent"] = slider_border,
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
-					["Color"] = menu["colors"]["panel"],
-					["Rounding"] = 3,
+					["Color"] = menu["colors"]["background"],
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["Transparency"] = 1,
 					["ZIndex"] = zindex + 2,
@@ -5508,9 +5310,9 @@ do
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(0, 0, 1, -2),
 					["Color"] = menu["colors"]["accent"],
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
-					["Transparency"] = 0,
+					["Transparency"] = 0.5,
 					["ZIndex"] = zindex + 3,
 					["Visible"] = true,
 				})
@@ -5616,7 +5418,7 @@ do
 					["Size"] = udim2_new(1, 0, 0, 16),
 					["Color"] = menu["colors"]["border"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["Visible"] = true,
 					["ZIndex"] = zindex + 1,
@@ -5626,7 +5428,7 @@ do
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
 					["Color"] = menu["colors"]["background"],
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["Transparency"] = 1,
 					["ZIndex"] = zindex + 2,
@@ -5673,7 +5475,7 @@ do
 					["Size"] = udim2_new(1, 0, 0, 16),
 					["Color"] = menu["colors"]["border"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["Visible"] = true,
 					["ZIndex"] = zindex + 1,
@@ -5682,15 +5484,15 @@ do
 					["Parent"] = dropdown_border,
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
-					["Color"] = menu["colors"]["panel"],
-					["Rounding"] = 3,
+					["Color"] = menu["colors"]["background"],
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["Transparency"] = 1,
 					["ZIndex"] = zindex + 2,
 					["Visible"] = true,
 				})
 				local dropdown_text = drawing_proxy["new"]("Text", {
-					["Color"] = menu["colors"]["inactive_text"],
+					["Color"] = menu["colors"]["dark_text"],
 					["Text"] = "none",
 					["Size"] = 12,
 					["Font"] = 1,
@@ -5699,13 +5501,13 @@ do
 					["Parent"] = dropdown_inside,
 					["Center"] = false,
 					["ZIndex"] = zindex + 3,
-					["Position"] = udim2_new(0, 8, 0, 0),
+					["Position"] = udim2_new(0, 3, 0, 0),
 				})
 				local dropdown_arrow = drawing_proxy["new"]("Image", {
-					["Color"] = menu["colors"]["inactive_text"],
+					["Color"] = menu["colors"]["dark_text"],
 					["Data"] = arrow_image_data,
 					["Size"] = udim2_new(0, 8, 0, 8),
-					["Position"] = udim2_new(1, -14, 0.5, -4),
+					["Position"] = udim2_new(1, -11, 0.5, -4),
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["ZIndex"] = zindex + 3,
@@ -5724,11 +5526,11 @@ do
 				new_element["options"] = properties["options"]
 
 				create_hover_connection(parent, dropdown_border, function()
-					tween(dropdown_border, { Color = menu["colors"]["accent"] }, circular, out, 0.17)
-					tween(dropdown_arrow, { Color = menu["colors"]["accent"] }, circular, out, 0.17)
+					tween(dropdown_border, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
+					tween(dropdown_arrow, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
 				end, function()
 					tween(dropdown_border, { Color = menu["colors"]["border"] }, circular, out, 0.17)
-					tween(dropdown_arrow, { Color = menu["colors"]["inactive_text"] }, circular, out, 0.17)
+					tween(dropdown_arrow, { Color = menu["colors"]["dark_text"] }, circular, out, 0.17)
 				end)
 
 				local extensions = properties["use_custom_extensions"]
@@ -5826,7 +5628,7 @@ do
 					["Size"] = udim2_new(0, 40, 0, 12),
 					["Color"] = menu["colors"]["border"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["ZIndex"] = zindex + 1,
 					["Visible"] = true,
@@ -5835,17 +5637,17 @@ do
 					["Parent"] = keybind_border,
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
-					["Color"] = menu["colors"]["panel"],
+					["Color"] = menu["colors"]["background"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["ZIndex"] = zindex + 2,
 					["Visible"] = true,
 				})
 				local keybind_text = drawing_proxy["new"]("Text", {
-					["Color"] = menu["colors"]["keybind_text"],
+					["Color"] = menu["colors"]["dark_text"],
 					["Text"] = "none",
-					["Size"] = 11,
+					["Size"] = 12,
 					["Font"] = 1,
 					["Transparency"] = 1,
 					["Visible"] = true,
@@ -5868,7 +5670,7 @@ do
 				new_element["on_key_press"] = signal["new"]()
 
 				create_hover_connection(parent, frame, function()
-					tween(keybind_border, { Color = menu["colors"]["accent"] }, circular, out, 0.17)
+					tween(keybind_border, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
 				end, function()
 					tween(keybind_border, { Color = menu["colors"]["border"] }, circular, out, 0.17)
 				end)
@@ -5904,7 +5706,7 @@ do
 					["Size"] = udim2_new(0, 25, 0, 12),
 					["Color"] = menu["colors"]["border"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["ZIndex"] = zindex + 1,
 					["Visible"] = true,
@@ -5915,7 +5717,7 @@ do
 					["Size"] = udim2_new(1, -2, 1, -2),
 					["Color"] = menu["colors"]["background"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["ZIndex"] = zindex + 2,
 					["Visible"] = true,
@@ -5926,7 +5728,7 @@ do
 					["Size"] = udim2_new(1, -2, 1, -2),
 					["Color"] = color3_fromrgb(255, 255, 255),
 					["Transparency"] = -transparency + 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = transparency_image_data,
 					["ZIndex"] = zindex + 3,
 					["Visible"] = true,
@@ -5982,14 +5784,14 @@ do
 					["ZIndex"] = zindex + 1,
 				})
 			elseif element == "button" then
-				total_y_size += 20
+				total_y_size += 4
 				local button_border = drawing_proxy["new"]("Image", {
 					["Parent"] = frame,
 					["Position"] = udim2_new(0, 0, 0, 0),
-					["Size"] = udim2_new(1, 0, 0, 20),
+					["Size"] = udim2_new(1, 0, 0, 16),
 					["Color"] = menu["colors"]["border"],
 					["Transparency"] = 1,
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["Visible"] = true,
 					["ZIndex"] = zindex + 1,
@@ -5998,8 +5800,8 @@ do
 					["Parent"] = button_border,
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
-					["Color"] = menu["colors"]["panel"],
-					["Rounding"] = 3,
+					["Color"] = menu["colors"]["background"],
+					["Rounding"] = 4,
 					["Data"] = pixel_image_data,
 					["Transparency"] = 1,
 					["ZIndex"] = zindex + 2,
@@ -6007,17 +5809,17 @@ do
 				})
 				local button_icon = drawing_proxy["new"]("Image", {
 					["Parent"] = button_border,
-					["Position"] = udim2_new(1, -16, 0, 5),
+					["Position"] = udim2_new(1, -14, 0, 3),
 					["Size"] = udim2_new(0, 10, 0, 10),
-					["Color"] = menu["colors"]["inactive_text"],
-					["Rounding"] = 3,
+					["Color"] = menu["colors"]["dark_text"],
+					["Rounding"] = 4,
 					["Data"] = button_image_data,
 					["Transparency"] = 1,
 					["ZIndex"] = zindex + 3,
 					["Visible"] = true,
 				})
 				local button_text = drawing_proxy["new"]("Text", {
-					["Color"] = menu["colors"]["inactive_text"],
+					["Color"] = menu["colors"]["dark_text"],
 					["Text"] = info["text"],
 					["Size"] = 12,
 					["Font"] = 1,
@@ -6026,7 +5828,7 @@ do
 					["Parent"] = button_inside,
 					["Center"] = false,
 					["ZIndex"] = zindex + 3,
-					["Position"] = udim2_new(0, 8, 0, 0),
+					["Position"] = udim2_new(0, 3, 0, 0),
 				})
 
 				local cooldown = clock()
@@ -6039,10 +5841,9 @@ do
 				drawings["button_text"] = button_text
 				drawings["button_icon"] = button_icon
 				drawings["text"]["Text"] = ""
-				new_element["hide_name"] = true
 
 				create_hover_connection(parent, button_border, function()
-					tween(button_border, { Color = menu["colors"]["accent"] }, circular, out, 0.17)
+					tween(button_border, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
 				end, function()
 					tween(button_border, { Color = menu["colors"]["border"] }, circular, out, 0.17)
 				end)
@@ -6133,8 +5934,6 @@ do
 
 		frame["Size"] = udim2_new(1, -20, 0, total_y_size)
 
-		new_element:update_text_clip()
-
 		return new_element, total_y_size
 	end
 
@@ -6144,7 +5943,6 @@ do
 
 		if property == "Text" then
 			text["Position"] = udim2_new(1, -text["TextBounds"]["X"], 0, -1)
-			self:update_text_clip()
 		end
 	end
 
@@ -6169,17 +5967,14 @@ do
 		end
 
 		local drawings = self["drawings"]
-		local is_risky = self["_risky"] == true
-		local active_color = is_risky and color3_fromrgb(220, 120, 120) or menu["colors"]["active_text"]
-		local inactive_color = is_risky and color3_fromrgb(180, 100, 100) or menu["colors"]["inactive_text"]
 		tween(
 			drawings["text"],
-			{ Color = value and active_color or inactive_color },
+			{ Color = value and menu["colors"]["active_text"] or menu["colors"]["inactive_text"] },
 			exponential,
 			out,
 			0.2
 		)
-		tween(drawings["checkmark"], { Transparency = value and 0.5 or 1 }, exponential, out, 0.2)
+		tween(drawings["checkmark"], { Transparency = value and 0.5 or 0 }, exponential, out, 0.2)
 
 		flags[self["toggle_flag"]] = value
 		self["on_toggle_change"]:Fire(value)
@@ -6369,8 +6164,6 @@ do
 		keybind_inside["Size"] = udim2_new(0, size - 2, 0, 10)
 		keybind_text["Position"] = udim2_new(0, (size - 2) / 2, 0, -2)
 
-		self:update_text_clip()
-
 		local flag = self["keybind_flag"]
 
 		if flag then
@@ -6402,8 +6195,6 @@ do
 
 		self["drawings"]["cog_icon"] = cog_icon
 
-		self:update_text_clip()
-
 		create_hover_connection(frame, cog_icon, function()
 			tween(cog_icon, { ["Color"] = menu["colors"]["highlighted"] }, circular, out, 0.17)
 		end, function()
@@ -6416,7 +6207,7 @@ do
 			["Size"] = udim2_new(0, 170, 0, 10),
 			["Color"] = menu["colors"]["border"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = 500,
 			["Visible"] = false,
@@ -6427,7 +6218,7 @@ do
 			["Size"] = udim2_new(1, -2, 1, -2),
 			["Color"] = menu["colors"]["section"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = 501,
 			["Visible"] = true,
@@ -6628,7 +6419,7 @@ do
 				local notification = notifications[i]
 				local inside = notification["inside"]
 				local position = inside["Position"]
-				local new_position = udim2_new(0, position["X"], 0, size - (i * 29 * ui_scale))
+				local new_position = udim2_new(0, position["X"], 0, size - (i * 29))
 				if position ~= new_position then
 					tween(inside, { tween_position = new_position }, exponential, out, 0.14)
 				end
@@ -6664,7 +6455,7 @@ do
 					["Color"] = color,
 					["Transparency"] = 0,
 					["Data"] = data or notification_types[type][2],
-					["Rounding"] = 3,
+					["Rounding"] = 4,
 					["ZIndex"] = 1102,
 					["Visible"] = true,
 				})
@@ -6719,9 +6510,9 @@ do
 
 				inside["Position"] = udim2_new(
 					0,
-					(viewport_size["X"] * 0.5) - (x_size * ui_scale * 0.5),
+					(viewport_size["X"] * 0.5) - (x_size * 0.5),
 					0,
-					viewport_size["Y"] * 0.88 - (#notifications * 29 - 5) * ui_scale
+					viewport_size["Y"] * 0.88 - (#notifications * 29 - 5)
 				)
 
 				tween(inside, { Transparency = 0.89 }, circular, out, 0.12)
@@ -7549,7 +7340,7 @@ do
 			["Size"] = udim2_new(0, 170, 0, 10),
 			["Color"] = menu["colors"]["border"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = 500,
 			["Visible"] = false,
@@ -7560,7 +7351,7 @@ do
 			["Size"] = udim2_new(1, -2, 1, -2),
 			["Color"] = menu["colors"]["background"],
 			["Transparency"] = 1,
-			["Rounding"] = 3,
+			["Rounding"] = 4,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = 501,
 			["Visible"] = true,
@@ -7690,7 +7481,7 @@ do
 				["Size"] = udim2_new(0, 170, 0, 10),
 				["Color"] = menu["colors"]["border"],
 				["Transparency"] = 1,
-				["Rounding"] = 3,
+				["Rounding"] = 4,
 				["Data"] = pixel_image_data,
 				["ZIndex"] = 500,
 				["Visible"] = false,
@@ -7701,7 +7492,7 @@ do
 				["Size"] = udim2_new(1, -2, 1, -2),
 				["Color"] = menu["colors"]["background"],
 				["Transparency"] = 1,
-				["Rounding"] = 3,
+				["Rounding"] = 4,
 				["Data"] = pixel_image_data,
 				["ZIndex"] = 501,
 				["Visible"] = true,
@@ -8957,13 +8748,6 @@ do
 end
 
 return {
-	["config"] = {
-		["name"] = script_name,
-		["version"] = script_version,
-		["ui_scale"] = ui_scale,
-		["logo"] = snowfall["logo"],
-		["folder"] = file_path,
-	},
 	["menu"] = menu,
 	["signal"] = signal,
 	["tween"] = tween,

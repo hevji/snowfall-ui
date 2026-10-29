@@ -11,7 +11,7 @@ local menu = library.menu
 local flags = library.flags
 ```
 
-The UI defaults to 125% scale. Drag the header to move it and drag the bottom-right grip to resize its width and height. Resizing does not change the scale factor. The window uses a dark teal palette, Plex text, a lightly translucent tinted surface, an accent glow, and sidebar stripes that fade out.
+The UI defaults to 125% scale (`menu.ui_scale == 1.25`) and an initial window size of about 913×675 pixels. Drag the header to move it and drag the bottom-right grip to resize its width and height. Resizing does not change the scale factor. The window uses a dark teal palette, Plex text, a lightly translucent tinted surface, an accent glow, and sidebar stripes that fade out.
 
 ## Build the navigation
 

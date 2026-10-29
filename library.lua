@@ -497,8 +497,9 @@ do
 		"iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAMAAAC67D+PAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAQKAAAECgBJz8A6wAAABh0RVh0U29mdHdhcmUAUGFpbnQuTkVUIDUuMS4y+7wDtgAAALZlWElmSUkqAAgAAAAFABoBBQABAAAASgAAABsBBQABAAAAUgAAACgBAwABAAAAAgAAADEBAgAQAAAAWgAAAGmHBAABAAAAagAAAAAAAAB3mgEA6AMAAHeaAQDoAwAAUGFpbnQuTkVUIDUuMS4yAAMAAJAHAAQAAAAwMjMwAaADAAEAAAABAAAABaAEAAEAAACUAAAAAAAAAAIAAQACAAQAAABSOTgAAgAHAAQAAAAwMTAwAAAAAEyPNqYn0aVIAAAALElEQVQYV2NgBAIGCAmioQhIQACQCZaGYBAJoZGYSApgUhATYAiikJGRkREACr4AMZ+SUSoAAAAASUVORK5CYII="
 	)
 	local ui_scale = 1.25
-	local window_width = 680
-	local window_height = 500
+	menu["ui_scale"] = ui_scale
+	local window_width = 730
+	local window_height = 540
 	local window_resized = false
 	local sidebar_width = 150
 	local menu_position = udim2_new(
@@ -4458,6 +4459,8 @@ do
 		return new_group
 	end
 
+	local create_subtab
+
 	function group:create_tab(name)
 		local group_initial_offset = self["initial_offset"]
 		local ordered_tabs = self["ordered_tabs"]
@@ -4488,6 +4491,9 @@ do
 			["group"] = self,
 			["name"] = name,
 		}
+		new_tab["create_subtab"] = function(tab, subtab_name)
+			return create_subtab(tab, subtab_name)
+		end
 
 		new_tab["destroy"] = function(self)
 			if not self or not self["text"] then
@@ -4546,8 +4552,7 @@ do
 		return new_tab
 	end
 
-	function new_tab:create_subtab(subtab_name)
-		local tab = self
+	create_subtab = function(tab, subtab_name)
 		local subtabs = tab["subtabs"] or {}
 		tab["subtabs"] = subtabs
 		local label = drawing_proxy["new"]("Text", {
@@ -4606,7 +4611,7 @@ do
 		end
 
 		function subtab:create_section(name, side, size, y_position)
-			local child_section = group:create_section(tab["name"], name, side, size, y_position or 0.06)
+			local child_section = tab["group"]:create_section(tab["name"], name, side, size, y_position or 0.06)
 			if child_section then
 				self["sections"][#self["sections"] + 1] = child_section
 				child_section["border"]["Visible"] = tab["active_subtab"] == self

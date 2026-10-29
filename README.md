@@ -25,7 +25,7 @@ See [`example.lua`](example.lua) for a complete runnable menu and [`docs.md`](do
 
 ## Included
 
-- 125% default UI scale, draggable window, and bottom-right resize grip.
+- 125% default UI scale, draggable window, and bottom-right resize grip. The initial window is about 913×675 pixels at that scale.
 - Groups, tabs, optional subtabs, and responsive two-column sections.
 - Toggle, slider, dropdown, textbox, color picker, keybind, info, and button controls.
 - Signals, notifications, themes, configs, favorites, settings popovers, and keybind display.

@@ -65,8 +65,8 @@ menu.set_accent_color(Color3.fromRGB(0, 180, 180))   -- muted cyan/teal
 -- -----------------------------------------------------------------------------
 -- Helper: create a section with a header paragraph (info element) and a separator
 -- -----------------------------------------------------------------------------
-local function make_section(tab, name, side)
-	local sec = tab:create_section(tab.name, name, side, 1, 0)
+local function make_section(group, tabName, name, side)
+	local sec = group:create_section(tabName, name, side, 1, 0)
 	-- optional: add a descriptive paragraph at top
 	sec:create_element({
 		["name"] = "About " .. name,
@@ -83,8 +83,8 @@ local tabGeneral = groupMain:create_tab("General")
 local tabVisuals = groupMain:create_tab("Visuals")
 
 -- ---- General tab -----------------------------------------------------------
-local genLeft  = make_section(tabGeneral, "General", 1)
-local genRight = make_section(tabGeneral, "Extras", 2)
+local genLeft  = make_section(groupMain, "General", "General", 1)
+local genRight = make_section(groupMain, "General", "Extras", 2)
 
 -- Toggle (normal)
 genLeft:create_element({
@@ -177,8 +177,8 @@ genRight:create_element({
 
 -- -----------------------------------------------------------------------------
 -- ---- Visuals tab ------------------------------------------------------------
-local visLeft  = make_section(tabVisuals, "Rendering", 1)
-local visRight = make_section(tabVisuals, "Effects", 2)
+local visLeft  = make_section(groupMain, "Visuals", "Rendering", 1)
+local visRight = make_section(groupMain, "Visuals", "Effects", 2)
 
 visLeft:create_element({
 	["name"] = "Enable ESP",
@@ -257,8 +257,8 @@ local groupSettings = menu.create_group("Settings")
 local tabConfig = groupSettings:create_tab("Config")
 local tabAbout  = groupSettings:create_tab("About")
 
-local cfgLeft = make_section(tabConfig, "Persistence", 1)
-local cfgRight = make_section(tabConfig, "Advanced", 2)
+local cfgLeft = make_section(groupSettings, "Config", "Persistence", 1)
+local cfgRight = make_section(groupSettings, "Config", "Advanced", 2)
 
 cfgLeft:create_element({
 	["name"] = "Auto‑save config",
@@ -292,8 +292,8 @@ cfgRight:create_element({
 end)
 
 -- ---- About tab -------------------------------------------------------------
-local aboutLeft = make_section(tabAbout, "Info", 1)
-local aboutRight = make_section(tabAbout, "Credits", 2)
+local aboutLeft = make_section(groupSettings, "About", "Info", 1)
+local aboutRight = make_section(groupSettings, "About", "Credits", 2)
 
 aboutLeft:create_element({
 	["name"] = "Library version",

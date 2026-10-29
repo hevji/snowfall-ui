@@ -26,7 +26,7 @@ end
 
 local file_path = getgenv().custom_folder or "juju recode"
 local user_input_service = cloneref(game:GetService("UserInputService"))
-local original_mouse_icon_enabled = nil
+local ui_state = { original_mouse_icon_enabled = nil }
 local get_mouse_location = user_input_service["GetMouseLocation"]
 local players_service = cloneref(game:GetService("Players"))
 local local_player = players_service["LocalPlayer"]
@@ -497,17 +497,17 @@ do
 	local cog_image_data = base64_decode(
 		"iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAMAAAC67D+PAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAQKAAAECgBJz8A6wAAABh0RVh0U29mdHdhcmUAUGFpbnQuTkVUIDUuMS4y+7wDtgAAALZlWElmSUkqAAgAAAAFABoBBQABAAAASgAAABsBBQABAAAAUgAAACgBAwABAAAAAgAAADEBAgAQAAAAWgAAAGmHBAABAAAAagAAAAAAAAB3mgEA6AMAAHeaAQDoAwAAUGFpbnQuTkVUIDUuMS4yAAMAAJAHAAQAAAAwMjMwAaADAAEAAAABAAAABaAEAAEAAACUAAAAAAAAAAIAAQACAAQAAABSOTgAAgAHAAQAAAAwMTAwAAAAAEyPNqYn0aVIAAAALElEQVQYV2NgBAIGCAmioQhIQACQCZaGYBAJoZGYSApgUhATYAiikJGRkREACr4AMZ+SUSoAAAAASUVORK5CYII="
 	)
-	local ui_scale = 1.25
-	menu["ui_scale"] = ui_scale
-	local window_width = 730
-	local window_height = 540
-	local window_resized = false
-	local sidebar_width = 150
+	ui_state.scale = 1.25
+	ui_state.width = 730
+	ui_state.height = 540
+	ui_state.resized = false
+	ui_state.sidebar_width = 150
+	menu["ui_scale"] = ui_state.scale
 	local menu_position = udim2_new(
 		0,
-		camera["ViewportSize"]["X"] / 2 - (window_width * ui_scale) / 2,
+		camera["ViewportSize"]["X"] / 2 - (ui_state.width * ui_state.scale) / 2,
 		0,
-		camera["ViewportSize"]["Y"] / 2 - (window_height * ui_scale) / 2
+		camera["ViewportSize"]["Y"] / 2 - (ui_state.height * ui_state.scale) / 2
 	)
 
 	local half_transparency = { Transparency = 0.5 }
@@ -624,9 +624,9 @@ do
 
 				real_position = vector2_new(
 					(parent_position["X"] + real_parent_size["X"] * position["X"]["Scale"])
-						+ position["X"]["Offset"] * ui_scale,
+						+ position["X"]["Offset"] * ui_state.scale,
 					(parent_position["Y"] + real_parent_size["Y"] * position["Y"]["Scale"])
-						+ position["Y"]["Offset"] * ui_scale
+						+ position["Y"]["Offset"] * ui_state.scale
 				)
 			end
 
@@ -668,14 +668,14 @@ do
 
 			local parent = rawget(proxy, "parent")
 			local real_size = parent and parent["real_size"]
-				or vector2_new(size["X"]["Offset"] * ui_scale, size["Y"]["Offset"] * ui_scale)
+				or vector2_new(size["X"]["Offset"] * ui_state.scale, size["Y"]["Offset"] * ui_state.scale)
 
 			if parent then
 				local parent_size = parent["real_size"]
 
 				real_size = vector2_new(
-					(parent_size["X"] * size["X"]["Scale"]) + size["X"]["Offset"] * ui_scale,
-					(parent_size["Y"] * size["Y"]["Scale"]) + size["Y"]["Offset"] * ui_scale
+					(parent_size["X"] * size["X"]["Scale"]) + size["X"]["Offset"] * ui_state.scale,
+					(parent_size["Y"] * size["Y"]["Scale"]) + size["Y"]["Offset"] * ui_state.scale
 				)
 			end
 
@@ -713,7 +713,7 @@ do
 				self["visible"] = value
 				update_proxy_visibility(self, value)
 			elseif property == "Size" and type(value) == "number" then
-				self["object"][property] = value * ui_scale
+				self["object"][property] = value * ui_state.scale
 			elseif
 				(property == "Size" or property == "tween_size")
 				and type(value) ~= "number"
@@ -722,7 +722,7 @@ do
 				self["size"] = value
 				update_proxy_size(self, value)
 			elseif property == "TextSize" and type(value) == "number" then
-				self["object"][property] = value * ui_scale
+				self["object"][property] = value * ui_state.scale
 			else
 				self["object"][property] = value
 			end
@@ -732,7 +732,7 @@ do
 			return property == "tween_size" and self["size"]
 				or property == "tween_position" and self["position"]
 				or property == "Destroy" and self["destroy"]
-				or property == "TextBounds" and self["object"][property] / ui_scale
+				or property == "TextBounds" and self["object"][property] / ui_state.scale
 				or self["object"][property]
 		end
 	end
@@ -754,14 +754,14 @@ do
 
 	local frame = drawing_proxy["new"]("Image", {
 		["Position"] = menu_position,
-		["Size"] = udim2_new(0, window_width, 0, window_height),
+		["Size"] = udim2_new(0, ui_state.width, 0, ui_state.height),
 		["Color"] = menu["colors"]["background"],
 		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 1,
 		["Visible"] = false,
 	})
-	local window_glow = drawing_proxy["new"]("Image", {
+	menu_references["window_glow"] = drawing_proxy["new"]("Image", {
 		["Parent"] = frame,
 		["Position"] = udim2_new(0, -14, 0, -14),
 		["Size"] = udim2_new(1, 28, 1, 28),
@@ -818,8 +818,8 @@ do
 
 	local right_side = drawing_proxy["new"]("Square", {
 		["Parent"] = inside,
-		["Position"] = udim2_new(0, sidebar_width, 0, 0),
-		["Size"] = udim2_new(1, -sidebar_width, 1, 0),
+		["Position"] = udim2_new(0, ui_state.sidebar_width, 0, 0),
+		["Size"] = udim2_new(1, -ui_state.sidebar_width, 1, 0),
 		["Color"] = menu["colors"]["background"],
 		["Visible"] = true,
 		["Filled"] = true,
@@ -828,8 +828,8 @@ do
 
 	local right_side_cover = drawing_proxy["new"]("Square", {
 		["Parent"] = inside,
-		["Position"] = udim2_new(0, sidebar_width, 0, 0),
-		["Size"] = udim2_new(1, -sidebar_width, 1, 0),
+		["Position"] = udim2_new(0, ui_state.sidebar_width, 0, 0),
+		["Size"] = udim2_new(1, -ui_state.sidebar_width, 1, 0),
 		["Color"] = menu["colors"]["background"],
 		["Visible"] = true,
 		["Filled"] = true,
@@ -839,7 +839,7 @@ do
 
 	local right_side_divider = drawing_proxy["new"]("Square", {
 		["Parent"] = inside,
-		["Position"] = udim2_new(0, sidebar_width - 1, 0, 0),
+		["Position"] = udim2_new(0, ui_state.sidebar_width - 1, 0, 0),
 		["Size"] = udim2_new(0, 1, 1, 0),
 		["Color"] = menu["colors"]["background"],
 		["Visible"] = true,
@@ -894,9 +894,9 @@ do
 		["Color"] = menu["colors"]["accent"],
 		["Visible"] = true,
 	})
-	local decorative_stripes = {}
+	menu_references["decorative_stripes"] = {}
 	for i = 1, 6 do
-		decorative_stripes[i] = drawing_proxy["new"]("Square", {
+		menu_references["decorative_stripes"][i] = drawing_proxy["new"]("Square", {
 			["Parent"] = inside,
 			["Position"] = udim2_new(0, 15, 0, 56 + (i - 1) * 2.5),
 			["Size"] = udim2_new(0, 68 - (i - 1) * 7, 0, 1),
@@ -967,7 +967,7 @@ do
 
 	local drag_frame = drawing_proxy["new"]("Image", {
 		["Position"] = menu_position,
-		["Size"] = udim2_new(0, window_width, 0, window_height),
+		["Size"] = udim2_new(0, ui_state.width, 0, ui_state.height),
 		["Color"] = menu["colors"]["background"],
 		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
@@ -975,7 +975,7 @@ do
 		["ZIndex"] = 1000,
 		["Visible"] = false,
 	})
-	local resize_hitbox = drawing_proxy["new"]("Square", {
+	menu_references["resize_hitbox"] = drawing_proxy["new"]("Square", {
 		["Parent"] = inside,
 		["Position"] = udim2_new(1, -22, 1, -22),
 		["Size"] = udim2_new(0, 18, 0, 18),
@@ -986,10 +986,10 @@ do
 		["ZIndex"] = 30,
 		["Visible"] = true,
 	})
-	local resize_grip = {}
+	menu_references["resize_grip"] = {}
 	for i = 1, 3 do
-		resize_grip[i] = drawing_proxy["new"]("Square", {
-			["Parent"] = resize_hitbox,
+		menu_references["resize_grip"][i] = drawing_proxy["new"]("Square", {
+			["Parent"] = menu_references["resize_hitbox"],
 			["Position"] = udim2_new(0, 3 + (i - 1) * 4, 0, 10 - (i - 1) * 4),
 			["Size"] = udim2_new(0, 1, 0, 5),
 			["Color"] = menu["colors"]["accent"],
@@ -3446,10 +3446,10 @@ do
 		local mouse_position = get_mouse_location(user_input_service)
 		local mouse_position_x = mouse_position["X"]
 		local mouse_position_y = mouse_position["Y"]
-		local resize_position = resize_hitbox["real_position"]
-		local resize_size = resize_hitbox["real_size"]
+		local resize_position = menu_references["resize_hitbox"]["real_position"]
+		local resize_size = menu_references["resize_hitbox"]["real_size"]
 		if
-			resize_hitbox["Visible"]
+			menu_references["resize_hitbox"]["Visible"]
 			and mouse_position_x >= resize_position["X"]
 			and mouse_position_x <= resize_position["X"] + resize_size["X"]
 			and mouse_position_y >= resize_position["Y"]
@@ -3457,14 +3457,14 @@ do
 		then
 			local start_x = mouse_position_x
 			local start_y = mouse_position_y
-			local start_width = window_width
-			local start_height = window_height
+			local start_width = ui_state.width
+			local start_height = ui_state.height
 			moving = create_connection(mouse["Move"], function()
 				local current = get_mouse_location(user_input_service)
-				window_width = clamp(start_width + (current["X"] - start_x) / ui_scale, 500, 1000)
-				window_height = clamp(start_height + (current["Y"] - start_y) / ui_scale, 360, 850)
-				window_resized = true
-				local new_size = udim2_new(0, window_width, 0, window_height)
+				ui_state.width = clamp(start_width + (current["X"] - start_x) / ui_state.scale, 500, 1000)
+				ui_state.height = clamp(start_height + (current["Y"] - start_y) / ui_state.scale, 360, 850)
+				ui_state.resized = true
+				local new_size = udim2_new(0, ui_state.width, 0, ui_state.height)
 				frame["Size"] = new_size
 				drag_frame["Size"] = new_size
 			end)
@@ -4389,10 +4389,10 @@ do
 		end
 
 		local content_height = current_y_offset > 405 and 450 + (current_y_offset - 405) or 450
-		if not window_resized then
-			window_height = math["max"](window_height, content_height)
+		if not ui_state.resized then
+			ui_state.height = math["max"](ui_state.height, content_height)
 		end
-		local size = udim2_new(0, window_width, 0, window_height)
+		local size = udim2_new(0, ui_state.width, 0, ui_state.height)
 		drag_frame["Size"] = size
 		frame["Size"] = size
 	end
@@ -4460,8 +4460,6 @@ do
 		return new_group
 	end
 
-	local create_subtab
-
 	function group:create_tab(name)
 		local group_initial_offset = self["initial_offset"]
 		local ordered_tabs = self["ordered_tabs"]
@@ -4493,7 +4491,7 @@ do
 			["name"] = name,
 		}
 		new_tab["create_subtab"] = function(tab, subtab_name)
-			return create_subtab(tab, subtab_name)
+			return menu["create_subtab"](tab, subtab_name)
 		end
 
 		new_tab["destroy"] = function(self)
@@ -4553,7 +4551,7 @@ do
 		return new_tab
 	end
 
-	create_subtab = function(tab, subtab_name)
+	menu["create_subtab"] = function(tab, subtab_name)
 		local subtabs = tab["subtabs"] or {}
 		tab["subtabs"] = subtabs
 		local label = drawing_proxy["new"]("Text", {
@@ -6693,7 +6691,7 @@ do
 
 				inside["Position"] = udim2_new(
 					0,
-					(viewport_size["X"] * 0.5) - (x_size * ui_scale * 0.5),
+					(viewport_size["X"] * 0.5) - (x_size * ui_state.scale * 0.5),
 					0,
 					viewport_size["Y"] * 0.88 - (#notifications * 29 - 5)
 				)
@@ -6765,13 +6763,13 @@ do
 
 			tab_line["Color"] = color
 			drag_logo["Color"] = color
-			window_glow["Color"] = color
-			resize_hitbox["Color"] = color
-			for i = 1, #resize_grip do
-				resize_grip[i]["Color"] = color
+			menu_references["window_glow"]["Color"] = color
+			menu_references["resize_hitbox"]["Color"] = color
+			for i = 1, #menu_references["resize_grip"] do
+				menu_references["resize_grip"][i]["Color"] = color
 			end
-			for i = 1, #decorative_stripes do
-				decorative_stripes[i]["Color"] = color
+			for i = 1, #menu_references["decorative_stripes"] do
+				menu_references["decorative_stripes"][i]["Color"] = color
 			end
 			for _, subtab in menu["subtabs"] do
 				subtab["underline"]["Color"] = color
@@ -7571,7 +7569,7 @@ do
 		-- >> ( settings )
 
 		do
-			local menu_keybind = settings_section:create_element({
+			menu_references["menu_keybind"] = settings_section:create_element({
 				["name"] = "toggle bind",
 			}, {
 				["keybind"] = {
@@ -7579,8 +7577,8 @@ do
 				},
 			})
 
-			menu_keybind:set_key(Enum["KeyCode"]["Delete"])
-			create_connection(menu_keybind["on_key_change"], function(key)
+			menu_references["menu_keybind"]:set_key(Enum["KeyCode"]["Delete"])
+			create_connection(menu_references["menu_keybind"]["on_key_change"], function(key)
 				keybind_data[1]["key"] = key
 			end)
 
@@ -8825,7 +8823,7 @@ do
 		if unload then
 			unload()
 		end
-		original_mouse_icon_enabled = user_input_service["MouseIconEnabled"]
+		ui_state.original_mouse_icon_enabled = user_input_service["MouseIconEnabled"]
 
 		local env = getgenv()
 		local old_drawing = env["fake_drawing"]
@@ -8887,7 +8885,7 @@ do
 				setrawmetatable(instance, mt)
 			end
 
-			user_input_service["MouseIconEnabled"] = original_mouse_icon_enabled
+			user_input_service["MouseIconEnabled"] = ui_state.original_mouse_icon_enabled
 			old_drawing["_UNLOAD"]()
 		end
 

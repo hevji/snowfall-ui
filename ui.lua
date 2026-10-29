@@ -37,16 +37,19 @@ end
 --   })
 --
 -- every field is optional and falls back to the defaults below
+--
+-- the config is kept in one table instead of many local variables because the
+-- main chunk is already close to luau's 200 local register limit
 
-local loader_config = ...
+local snowfall = ...
 
-if type(loader_config) ~= "table" then
-	loader_config = {}
+if type(snowfall) ~= "table" then
+	snowfall = {}
 end
 
 -- > ( global cheat variables )
 
-local file_path = loader_config["folder"] or getgenv().custom_folder or "juju recode"
+local file_path = snowfall["folder"] or getgenv().custom_folder or "juju recode"
 local user_input_service = cloneref(game:GetService("UserInputService"))
 local get_mouse_location = user_input_service["GetMouseLocation"]
 local players_service = cloneref(game:GetService("Players"))
@@ -67,44 +70,32 @@ local udim2_new = UDim2["new"]
 
 -- > ( ui scale )
 -- controls the overall size of the menu (1.25 = 125% of the original size)
-local ui_scale = tonumber(loader_config["ui_scale"]) or 1.50
+local ui_scale = tonumber(snowfall["ui_scale"]) or 1.50
 
 -- > ( branding )
--- supplied by the loading script through loader_config, so the library itself
--- does not need to be edited and nothing can override it through getgenv
-local script_name = loader_config["name"] or "Snowfall"
-local script_version = tostring(loader_config["version"] or "1.0")
+-- supplied by the loading script through the config table, so the library
+-- itself does not need to be edited and getgenv cannot override it
+local script_name = snowfall["name"] or "Snowfall"
+local script_version = tostring(snowfall["version"] or "1.0")
 
 -- optional custom logo:
 --   logo = "my_logo.png"       loads the file from the executor workspace
 --   logo_data = raw_bytes      uses the bytes directly (skips reading a file)
 -- the bundled drawing api turns raw image bytes into a custom asset internally,
 -- so files are read with readfile unless logo_is_asset is set to true
-local custom_logo_path = loader_config["logo"]
-local custom_logo_data = loader_config["logo_data"]
-local custom_logo_as_asset = loader_config["logo_is_asset"] == true
-
-local function get_logo_data()
-	if custom_logo_data then
-		return custom_logo_data
+snowfall["get_logo_data"] = function()
+	if snowfall["logo_data"] then
+		return snowfall["logo_data"]
 	end
 
-	local path = custom_logo_path
+	local path = snowfall["logo"]
 
 	if path and (not isfile or isfile(path)) then
-		return custom_logo_as_asset and getcustomasset(path) or readfile(path)
+		return snowfall["logo_is_asset"] == true and getcustomasset(path) or readfile(path)
 	end
 
 	return readfile(file_path .. "/assets/logo.png")
 end
-
-local script_config = {
-	["name"] = script_name,
-	["version"] = script_version,
-	["ui_scale"] = ui_scale,
-	["logo"] = custom_logo_path,
-	["folder"] = file_path,
-}
 
 local math_random = math["random"]
 local clock = os["clock"]
@@ -114,7 +105,6 @@ local clamp = math["clamp"]
 local floor = math["floor"]
 local wait = task["wait"]
 local sqrt = math["sqrt"]
-local type = type
 
 local shadow_image_data = base64_decode(
 	"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAQAAABpN6lAAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAHdElNRQfiAQkTIxqKm+UhAAACvElEQVR42u2dzY7aMBhFjxPHEzJQBolRq77/27XSwBCSkD/PwinS7LpBVwrfeYLjI4Ozuy6Cw+HIyHBkOMCxTiIQmYnMzEQi0S9Hz/EUePIlxDpJB58YGRiZmJlTgIKCQMkLYYmwTtLhe2509AwM6QbkFJRUbKnYEChWHGCgp6WhpoF0AzI8gYodB/bs2BDI1aYPYqKn5cIZR7oPkyejoGTLgZ+888aOEq82fRAjHRdOlEBkZGTwODwvVOx55zdH9rxSqE0fxMCVMxXQ0dHS4TwZOYENO9448osDW4La9EH01GyAhhOfBHKy9Ar4JcGeA0d2Kw5QAu3yT+fJcB7IyJdn8JUtO36sOAB0vFISKNJz7+9fgelTKBAIlGrThxEI3z743Fpf/P/GAqgF1FgAtYAaC6AWUGMB1AJqLIBaQI0FUAuosQBqATUWQC2gxgKoBdRYALWAGgugFlBjAdQCaiyAWkCNBVALqLEAagE1FkAtoMYCqAXUWAC1gBoLoBZQYwHUAmosgFpAjQVQC6ixAGoBNRZALaDGAqgF1FgAtYAaC6AWUGMB1AJqLIBaQI0FUAuosQBqATUWQC2gxgKoBdRYALWAGgugFlBjAdQCaiyAWkCNBVALqLEAagE1FkAtoMYCqAXUWAC1gBoLoBZQYwHUAmosgFpAjQVQC6ixAGoBNRZALaDGAqgF1FgAtYAaC6AWUGMB1AJqLIBaQI0nfpsi7enp1VIPI53uPriaVmfT9ORAT8eVmhJWvDZ3oea6TK5OzOkGzIz3Lc4N0K04QM0HZy609IzMRM98nyI9UQHt6ic3/3JaEkzMnsjIjYYzJdA8xejqH8403BjTDRjoqHFAx+lJZnc/qOkYmP3yD9AAkY7PJxpe7hnTT2BiAGZG2ieb3p6ILj75+LqL4O7Dq245/HoDpAjx32cQ8QtpRORenSWX2AAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xOdTWsmQAAAAASUVORK5CYII="
@@ -173,7 +163,7 @@ local remove = LPH_NO_VIRTUALIZE(function(tbl, index)
 	tbl[length] = nil
 end)
 
-local truncate_text = LPH_NO_VIRTUALIZE(function(label, value, max_width)
+snowfall["truncate_text"] = LPH_NO_VIRTUALIZE(function(label, value, max_width)
 	value = value or ""
 	label["Text"] = value
 
@@ -199,7 +189,7 @@ local truncate_text = LPH_NO_VIRTUALIZE(function(label, value, max_width)
 	label["Text"] = ""
 end)
 
-local fit_text = LPH_NO_VIRTUALIZE(function(label, value, max_width, min_size)
+snowfall["fit_text"] = LPH_NO_VIRTUALIZE(function(label, value, max_width, min_size)
 	label["Text"] = value or ""
 
 	local size = label["Size"]
@@ -208,7 +198,7 @@ local fit_text = LPH_NO_VIRTUALIZE(function(label, value, max_width, min_size)
 		label["Size"] = size
 	end
 
-	truncate_text(label, value, max_width)
+	snowfall["truncate_text"](label, value, max_width)
 end)
 
 -- > ( signal library )
@@ -875,11 +865,11 @@ do
 		["Visible"] = false,
 	})
 
-	local logo_data = get_logo_data()
+	snowfall["logo_data"] = snowfall["logo_data"] or snowfall["get_logo_data"]()
 
 	local logo = drawing_proxy["new"]("Image", {
 		["Color"] = menu["colors"]["accent"],
-		["Data"] = logo_data,
+		["Data"] = snowfall["logo_data"],
 		["Position"] = udim2_new(0, 15, 0, 15),
 		["Parent"] = inside,
 		["Size"] = udim2_new(0, 35, 0, 35),
@@ -910,11 +900,11 @@ do
 	})
 
 	-- keep the name and version inside the sidebar instead of letting them clip into the menu
-	local header_text_width = 101 - (15 + 35 + 5) - 4
-	fit_text(juju_text, script_name, header_text_width, 9)
+	-- (101 sidebar width - 15 logo offset - 35 logo width - 5 text offset - 4 padding)
+	snowfall["fit_text"](juju_text, script_name, 42, 9)
 
 	build_text["Size"] = juju_text["Size"]
-	fit_text(build_text, script_version, header_text_width, 9)
+	snowfall["fit_text"](build_text, script_version, 42, 9)
 
 	local right_side = drawing_proxy["new"]("Square", {
 		["Parent"] = inside,
@@ -1078,7 +1068,7 @@ do
 
 	local drag_logo = drawing_proxy["new"]("Image", {
 		["Color"] = menu["colors"]["accent"],
-		["Data"] = logo_data,
+		["Data"] = snowfall["logo_data"],
 		["Position"] = udim2_new(0.5, -40, 0.5, -40),
 		["Parent"] = drag_inside,
 		["Size"] = udim2_new(0, 80, 0, 80),
@@ -5342,7 +5332,7 @@ do
 			- right_padding
 			- 2
 
-		truncate_text(text, full_name, available_width)
+		snowfall["truncate_text"](text, full_name, available_width)
 	end
 
 	function element.new(info, elements)
@@ -8936,7 +8926,13 @@ do
 end
 
 return {
-	["config"] = script_config,
+	["config"] = {
+		["name"] = script_name,
+		["version"] = script_version,
+		["ui_scale"] = ui_scale,
+		["logo"] = snowfall["logo"],
+		["folder"] = file_path,
+	},
 	["menu"] = menu,
 	["signal"] = signal,
 	["tween"] = tween,

@@ -5389,11 +5389,17 @@ do
 				new_element["name_left_offset"] = 17
 				text["tween_position"] += udim2_new(0, 17, 0, 0)
 
+				local is_risky = properties["risky"] == true
+				local border_color = is_risky and color3_fromrgb(180, 60, 60) or menu["colors"]["border"]
+				local check_color = is_risky and color3_fromrgb(220, 80, 80) or menu["colors"]["accent"]
+				local label_color = is_risky and color3_fromrgb(180, 100, 100) or menu["colors"]["inactive_text"]
+				text["Color"] = label_color
+
 				local toggle_border = drawing_proxy["new"]("Image", {
 					["Parent"] = frame,
 					["Position"] = udim2_new(0, 0, 0, 0),
 					["Size"] = udim2_new(0, 12, 0, 12),
-					["Color"] = menu["colors"]["border"],
+					["Color"] = border_color,
 					["Transparency"] = 1,
 					["Rounding"] = 3,
 					["Data"] = pixel_image_data,
@@ -5424,20 +5430,21 @@ do
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
 					["Data"] = checkmark_image_data,
-					["Transparency"] = 0,
+					["Transparency"] = 1,
 					["ZIndex"] = zindex + 3,
-					["Color"] = menu["colors"]["accent"],
+					["Color"] = check_color,
 					["Visible"] = true,
 				})
 
 				new_element["drawings"]["toggle_border"] = toggle_border
 				new_element["drawings"]["toggle_inside"] = toggle_inside
 				new_element["drawings"]["checkmark"] = checkmark
+				new_element["_risky"] = is_risky
 
 				create_hover_connection(parent, toggle_click, function()
-					tween(toggle_border, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
+					tween(toggle_border, { Color = is_risky and color3_fromrgb(200, 80, 80) or menu["colors"]["highlighted"] }, circular, out, 0.17)
 				end, function()
-					tween(toggle_border, { Color = menu["colors"]["border"] }, circular, out, 0.17)
+					tween(toggle_border, { Color = border_color }, circular, out, 0.17)
 				end)
 
 				new_element["on_toggle_change"] = signal["new"]()
@@ -5458,6 +5465,19 @@ do
 						open_context(keybind_data[new_element] and { 2, 1 } or { 1 }, new_element, position)
 					end)
 				end
+			elseif element == "separator" then
+				total_y_size += 8
+				local sep = drawing_proxy["new"]("Square", {
+					["Parent"] = frame,
+					["Position"] = udim2_new(0, 10, 0, total_y_size - 8),
+					["Size"] = udim2_new(1, -20, 0, 1),
+					["Color"] = menu["colors"]["border"],
+					["Transparency"] = 0.7,
+					["Filled"] = true,
+					["Visible"] = true,
+					["ZIndex"] = zindex + 1,
+				})
+				new_element["drawings"]["separator"] = sep
 			elseif element == "slider" then
 				total_y_size += 14
 
@@ -5476,7 +5496,7 @@ do
 					["Parent"] = slider_border,
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
-					["Color"] = menu["colors"]["background"],
+					["Color"] = menu["colors"]["panel"],
 					["Rounding"] = 3,
 					["Data"] = pixel_image_data,
 					["Transparency"] = 1,
@@ -5490,7 +5510,7 @@ do
 					["Color"] = menu["colors"]["accent"],
 					["Rounding"] = 3,
 					["Data"] = pixel_image_data,
-					["Transparency"] = 0.5,
+					["Transparency"] = 0,
 					["ZIndex"] = zindex + 3,
 					["Visible"] = true,
 				})
@@ -5662,7 +5682,7 @@ do
 					["Parent"] = dropdown_border,
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
-					["Color"] = menu["colors"]["background"],
+					["Color"] = menu["colors"]["panel"],
 					["Rounding"] = 3,
 					["Data"] = pixel_image_data,
 					["Transparency"] = 1,
@@ -5670,7 +5690,7 @@ do
 					["Visible"] = true,
 				})
 				local dropdown_text = drawing_proxy["new"]("Text", {
-					["Color"] = menu["colors"]["dark_text"],
+					["Color"] = menu["colors"]["inactive_text"],
 					["Text"] = "none",
 					["Size"] = 12,
 					["Font"] = 1,
@@ -5679,13 +5699,13 @@ do
 					["Parent"] = dropdown_inside,
 					["Center"] = false,
 					["ZIndex"] = zindex + 3,
-					["Position"] = udim2_new(0, 3, 0, 0),
+					["Position"] = udim2_new(0, 8, 0, 0),
 				})
 				local dropdown_arrow = drawing_proxy["new"]("Image", {
-					["Color"] = menu["colors"]["dark_text"],
+					["Color"] = menu["colors"]["inactive_text"],
 					["Data"] = arrow_image_data,
 					["Size"] = udim2_new(0, 8, 0, 8),
-					["Position"] = udim2_new(1, -11, 0.5, -4),
+					["Position"] = udim2_new(1, -14, 0.5, -4),
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["ZIndex"] = zindex + 3,
@@ -5704,11 +5724,11 @@ do
 				new_element["options"] = properties["options"]
 
 				create_hover_connection(parent, dropdown_border, function()
-					tween(dropdown_border, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
-					tween(dropdown_arrow, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
+					tween(dropdown_border, { Color = menu["colors"]["accent"] }, circular, out, 0.17)
+					tween(dropdown_arrow, { Color = menu["colors"]["accent"] }, circular, out, 0.17)
 				end, function()
 					tween(dropdown_border, { Color = menu["colors"]["border"] }, circular, out, 0.17)
-					tween(dropdown_arrow, { Color = menu["colors"]["dark_text"] }, circular, out, 0.17)
+					tween(dropdown_arrow, { Color = menu["colors"]["inactive_text"] }, circular, out, 0.17)
 				end)
 
 				local extensions = properties["use_custom_extensions"]
@@ -5815,7 +5835,7 @@ do
 					["Parent"] = keybind_border,
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
-					["Color"] = menu["colors"]["background"],
+					["Color"] = menu["colors"]["panel"],
 					["Transparency"] = 1,
 					["Rounding"] = 3,
 					["Data"] = pixel_image_data,
@@ -5823,9 +5843,9 @@ do
 					["Visible"] = true,
 				})
 				local keybind_text = drawing_proxy["new"]("Text", {
-					["Color"] = menu["colors"]["dark_text"],
+					["Color"] = menu["colors"]["keybind_text"],
 					["Text"] = "none",
-					["Size"] = 12,
+					["Size"] = 11,
 					["Font"] = 1,
 					["Transparency"] = 1,
 					["Visible"] = true,
@@ -5848,7 +5868,7 @@ do
 				new_element["on_key_press"] = signal["new"]()
 
 				create_hover_connection(parent, frame, function()
-					tween(keybind_border, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
+					tween(keybind_border, { Color = menu["colors"]["accent"] }, circular, out, 0.17)
 				end, function()
 					tween(keybind_border, { Color = menu["colors"]["border"] }, circular, out, 0.17)
 				end)
@@ -5962,11 +5982,11 @@ do
 					["ZIndex"] = zindex + 1,
 				})
 			elseif element == "button" then
-				total_y_size += 4
+				total_y_size += 20
 				local button_border = drawing_proxy["new"]("Image", {
 					["Parent"] = frame,
 					["Position"] = udim2_new(0, 0, 0, 0),
-					["Size"] = udim2_new(1, 0, 0, 16),
+					["Size"] = udim2_new(1, 0, 0, 20),
 					["Color"] = menu["colors"]["border"],
 					["Transparency"] = 1,
 					["Rounding"] = 3,
@@ -5978,7 +5998,7 @@ do
 					["Parent"] = button_border,
 					["Position"] = udim2_new(0, 1, 0, 1),
 					["Size"] = udim2_new(1, -2, 1, -2),
-					["Color"] = menu["colors"]["background"],
+					["Color"] = menu["colors"]["panel"],
 					["Rounding"] = 3,
 					["Data"] = pixel_image_data,
 					["Transparency"] = 1,
@@ -5987,9 +6007,9 @@ do
 				})
 				local button_icon = drawing_proxy["new"]("Image", {
 					["Parent"] = button_border,
-					["Position"] = udim2_new(1, -14, 0, 3),
+					["Position"] = udim2_new(1, -16, 0, 5),
 					["Size"] = udim2_new(0, 10, 0, 10),
-					["Color"] = menu["colors"]["dark_text"],
+					["Color"] = menu["colors"]["inactive_text"],
 					["Rounding"] = 3,
 					["Data"] = button_image_data,
 					["Transparency"] = 1,
@@ -5997,7 +6017,7 @@ do
 					["Visible"] = true,
 				})
 				local button_text = drawing_proxy["new"]("Text", {
-					["Color"] = menu["colors"]["dark_text"],
+					["Color"] = menu["colors"]["inactive_text"],
 					["Text"] = info["text"],
 					["Size"] = 12,
 					["Font"] = 1,
@@ -6006,7 +6026,7 @@ do
 					["Parent"] = button_inside,
 					["Center"] = false,
 					["ZIndex"] = zindex + 3,
-					["Position"] = udim2_new(0, 3, 0, 0),
+					["Position"] = udim2_new(0, 8, 0, 0),
 				})
 
 				local cooldown = clock()
@@ -6022,7 +6042,7 @@ do
 				new_element["hide_name"] = true
 
 				create_hover_connection(parent, button_border, function()
-					tween(button_border, { Color = menu["colors"]["highlighted"] }, circular, out, 0.17)
+					tween(button_border, { Color = menu["colors"]["accent"] }, circular, out, 0.17)
 				end, function()
 					tween(button_border, { Color = menu["colors"]["border"] }, circular, out, 0.17)
 				end)
@@ -6149,14 +6169,17 @@ do
 		end
 
 		local drawings = self["drawings"]
+		local is_risky = self["_risky"] == true
+		local active_color = is_risky and color3_fromrgb(220, 120, 120) or menu["colors"]["active_text"]
+		local inactive_color = is_risky and color3_fromrgb(180, 100, 100) or menu["colors"]["inactive_text"]
 		tween(
 			drawings["text"],
-			{ Color = value and menu["colors"]["active_text"] or menu["colors"]["inactive_text"] },
+			{ Color = value and active_color or inactive_color },
 			exponential,
 			out,
 			0.2
 		)
-		tween(drawings["checkmark"], { Transparency = value and 0.5 or 0 }, exponential, out, 0.2)
+		tween(drawings["checkmark"], { Transparency = value and 0.5 or 1 }, exponential, out, 0.2)
 
 		flags[self["toggle_flag"]] = value
 		self["on_toggle_change"]:Fire(value)

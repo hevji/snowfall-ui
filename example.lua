@@ -2,7 +2,7 @@
 	Snowfall UI - example.lua
 
 	This is a small example menu that shows the most common element types.
-	Place this file next to ui.lua in your executor's workspace folder, then run it.
+	It downloads ui.lua from GitHub, so no local copy is needed.
 
 	All options below are passed to the library by this script, so ui.lua never
 	has to be edited. Remove any field to use the library's default.
@@ -25,8 +25,51 @@ local config = {
 
 -- Load the library straight from GitHub.
 -- (Use readfile("ui.lua") instead if you prefer to run a local copy.)
-local UI_URL = "https://raw.githubusercontent.com/hevji/snowfall-ui/main/ui.lua"
-local library = loadstring(game:HttpGet(UI_URL))(config)
+local UI_URLS = {
+	"https://raw.githubusercontent.com/hevji/snowfall-ui/main/ui.lua",
+	"https://cdn.jsdelivr.net/gh/hevji/snowfall-ui@main/ui.lua",
+}
+
+local http_get = game.HttpGet or game.HttpGetAsync
+local compile = loadstring or load
+
+local function load_library()
+	local last_error = "no source url available"
+
+	if not http_get then
+		error("snowfall ui failed to load: this executor has no HttpGet", 0)
+	end
+
+	if not compile then
+		error("snowfall ui failed to load: this executor has no loadstring", 0)
+	end
+
+	for _, url in ipairs(UI_URLS) do
+		local ok, source = pcall(http_get, game, url)
+
+		if not ok or type(source) ~= "string" or source == "" then
+			last_error = "download failed: " .. tostring(source)
+		else
+			local chunk, compile_error = compile(source, "snowfall-ui")
+
+			if not chunk then
+				last_error = "compile error: " .. tostring(compile_error)
+			else
+				local success, result = pcall(chunk, config)
+
+				if success and type(result) == "table" and result["menu"] then
+					return result
+				end
+
+				last_error = success and "ui.lua did not return a library" or tostring(result)
+			end
+		end
+	end
+
+	error("snowfall ui failed to load: " .. tostring(last_error), 0)
+end
+
+local library = load_library()
 local menu = library.menu
 local flags = library.flags
 

@@ -1,50 +1,34 @@
 # Snowfall UI
 
-A lightweight drawing-based UI library for Roblox executors.
+Snowfall UI is a drawing-based Roblox interface library with a Lithium-inspired dark theme, smooth interactions, and a small API for building tabs, sections, controls, and configuration panels.
 
-## Usage
+## Quick start
 
-Load the library and pass your own settings. Every field is optional; remove a
-field to use the library's default.
+Run this in an environment that supports the Drawing API and the filesystem and executor functions used by `library.lua`:
 
 ```lua
-local config = {
-    ["name"] = "Snowfall",
-    ["version"] = "1.0",
-    ["ui_scale"] = 1.50,
-    -- ["logo"] = "my_logo.png",         -- workspace image path
-    -- ["logo_data"] = raw_image_bytes,  -- or pass the bytes directly
-    -- ["logo_is_asset"] = false,        -- true loads ["logo"] via getcustomasset
-    -- ["folder"] = "juju recode",       -- folder for assets/ and data.dat
-}
-
-local library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/hevji/snowfall-ui/main/ui.lua"
-))(config)
+local url = "https://raw.githubusercontent.com/hevji/snowfall-ui/main/library.lua"
+local library = loadstring(game:HttpGet(url))()
 
 local menu = library.menu
-local flags = library.flags
+local group = menu.create_group("Showcase")
+local tab = group:create_tab("Basics")
+local page = tab:create_subtab("General")
+local controls = page:create_section("Controls", 1, 1)
+
+local enabled = controls:create_element({ name = "Enabled" }, {
+	toggle = { flag = "demo.enabled", default = true },
+})
 ```
 
-| Field | Default | Purpose |
-| --- | --- | --- |
-| `name` | `"Snowfall"` | name shown in the header |
-| `version` | `"1.0"` | version shown in the header |
-| `ui_scale` | `1.50` | overall menu scale |
-| `logo` | bundled logo | workspace path for a custom logo |
-| `logo_data` | `nil` | raw image bytes (takes priority over `logo`) |
-| `logo_is_asset` | `false` | load `logo` with `getcustomasset` |
-| `folder` | `"juju recode"` | folder containing `assets/` and `data.dat` |
+See [`example.lua`](example.lua) for a complete runnable menu and [`docs.md`](docs.md) for the feature and API reference.
 
-## Example
+## Included
 
-[`example.lua`](example.lua) is a complete menu showing every element type:
-toggle, slider, dropdown, textbox, colorpicker, keybind, button and info.
+- 125% default UI scale, draggable window, and bottom-right resize grip.
+- Groups, tabs, optional subtabs, and responsive two-column sections.
+- Toggle, slider, dropdown, textbox, color picker, keybind, info, and button controls.
+- Signals, notifications, themes, configs, favorites, settings popovers, and keybind display.
+- A dark teal palette, Plex font, translucent tinted surfaces, soft glow, and fading stripe accents.
 
-## Notes
-
-- Branding is supplied by the loading script, not `getgenv()`, so it cannot be
-  overwritten by other scripts.
-- The header name/version shrink and truncate to stay inside the sidebar, and
-  element labels truncate instead of overlapping their right-side controls.
-- Missing assets are downloaded automatically on first run into `folder`.
+The library automatically prepares its bundled assets and data under `getgenv().custom_folder` or `juju recode`.

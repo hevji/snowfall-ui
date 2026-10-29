@@ -290,8 +290,8 @@ local menu = {
 		["highlighted"] = color3_fromrgb(64, 91, 96),
 		["dark_text"] = color3_fromrgb(95, 111, 113),
 		["image"] = color3_fromrgb(118, 126, 127),
-		["section"] = color3_fromrgb(8, 9, 10),
-		["background"] = color3_fromrgb(3, 4, 5),
+		["section"] = color3_fromrgb(12, 17, 20),
+		["background"] = color3_fromrgb(5, 8, 10),
 		["success"] = color3_fromrgb(153, 216, 222),
 		["error"] = color3_fromrgb(39, 60, 96),
 		["alert"] = color3_fromrgb(30, 51, 61),
@@ -303,6 +303,7 @@ local menu = {
 	settings = {},
 	notifications = {},
 	groups = {},
+	subtabs = {},
 	favorites = {},
 	autoload = nil,
 	initial_base_offset = 75,
@@ -495,8 +496,17 @@ do
 	local cog_image_data = base64_decode(
 		"iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAMAAAC67D+PAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURf///wAAAFXC034AAAACdFJOU/8A5bcwSgAAAAlwSFlzAAAQKAAAECgBJz8A6wAAABh0RVh0U29mdHdhcmUAUGFpbnQuTkVUIDUuMS4y+7wDtgAAALZlWElmSUkqAAgAAAAFABoBBQABAAAASgAAABsBBQABAAAAUgAAACgBAwABAAAAAgAAADEBAgAQAAAAWgAAAGmHBAABAAAAagAAAAAAAAB3mgEA6AMAAHeaAQDoAwAAUGFpbnQuTkVUIDUuMS4yAAMAAJAHAAQAAAAwMjMwAaADAAEAAAABAAAABaAEAAEAAACUAAAAAAAAAAIAAQACAAQAAABSOTgAAgAHAAQAAAAwMTAwAAAAAEyPNqYn0aVIAAAALElEQVQYV2NgBAIGCAmioQhIQACQCZaGYBAJoZGYSApgUhATYAiikJGRkREACr4AMZ+SUSoAAAAASUVORK5CYII="
 	)
-	local menu_position =
-		udim2_new(0, camera["ViewportSize"]["X"] / 2 - 575 / 2, 0, camera["ViewportSize"]["Y"] / 2 - 450 * 0.5)
+	local ui_scale = 1.25
+	local window_width = 680
+	local window_height = 500
+	local window_resized = false
+	local sidebar_width = 150
+	local menu_position = udim2_new(
+		0,
+		camera["ViewportSize"]["X"] / 2 - (window_width * ui_scale) / 2,
+		0,
+		camera["ViewportSize"]["Y"] / 2 - (window_height * ui_scale) / 2
+	)
 
 	local half_transparency = { Transparency = 0.5 }
 	local stop_panel_search = nil
@@ -611,8 +621,10 @@ do
 				local real_parent_size = parent["real_size"]
 
 				real_position = vector2_new(
-					(parent_position["X"] + real_parent_size["X"] * position["X"]["Scale"]) + position["X"]["Offset"],
-					(parent_position["Y"] + real_parent_size["Y"] * position["Y"]["Scale"]) + position["Y"]["Offset"]
+					(parent_position["X"] + real_parent_size["X"] * position["X"]["Scale"])
+						+ position["X"]["Offset"] * ui_scale,
+					(parent_position["Y"] + real_parent_size["Y"] * position["Y"]["Scale"])
+						+ position["Y"]["Offset"] * ui_scale
 				)
 			end
 
@@ -653,14 +665,15 @@ do
 			end
 
 			local parent = rawget(proxy, "parent")
-			local real_size = parent and parent["real_size"] or vector2_new(size["X"]["Offset"], size["Y"]["Offset"])
+			local real_size = parent and parent["real_size"]
+				or vector2_new(size["X"]["Offset"] * ui_scale, size["Y"]["Offset"] * ui_scale)
 
 			if parent then
 				local parent_size = parent["real_size"]
 
 				real_size = vector2_new(
-					(parent_size["X"] * size["X"]["Scale"]) + size["X"]["Offset"],
-					(parent_size["Y"] * size["Y"]["Scale"]) + size["Y"]["Offset"]
+					(parent_size["X"] * size["X"]["Scale"]) + size["X"]["Offset"] * ui_scale,
+					(parent_size["Y"] * size["Y"]["Scale"]) + size["Y"]["Offset"] * ui_scale
 				)
 			end
 
@@ -697,6 +710,8 @@ do
 			elseif property == "Visible" then
 				self["visible"] = value
 				update_proxy_visibility(self, value)
+			elseif property == "Size" and type(value) == "number" then
+				self["object"][property] = value * ui_scale
 			elseif
 				(property == "Size" or property == "tween_size")
 				and type(value) ~= "number"
@@ -704,6 +719,8 @@ do
 			then
 				self["size"] = value
 				update_proxy_size(self, value)
+			elseif property == "TextSize" and type(value) == "number" then
+				self["object"][property] = value * ui_scale
 			else
 				self["object"][property] = value
 			end
@@ -713,6 +730,7 @@ do
 			return property == "tween_size" and self["size"]
 				or property == "tween_position" and self["position"]
 				or property == "Destroy" and self["destroy"]
+				or property == "TextBounds" and self["object"][property] / ui_scale
 				or self["object"][property]
 		end
 	end
@@ -734,12 +752,23 @@ do
 
 	local frame = drawing_proxy["new"]("Image", {
 		["Position"] = menu_position,
-		["Size"] = udim2_new(0, 575, 0, 450),
+		["Size"] = udim2_new(0, window_width, 0, window_height),
 		["Color"] = menu["colors"]["background"],
 		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 1,
 		["Visible"] = false,
+	})
+	local window_glow = drawing_proxy["new"]("Image", {
+		["Parent"] = frame,
+		["Position"] = udim2_new(0, -14, 0, -14),
+		["Size"] = udim2_new(1, 28, 1, 28),
+		["Color"] = menu["colors"]["accent"],
+		["Rounding"] = 12,
+		["Data"] = shadow_image_data,
+		["Transparency"] = 0.18,
+		["ZIndex"] = -20,
+		["Visible"] = true,
 	})
 
 	local inside = drawing_proxy["new"]("Image", {
@@ -764,7 +793,7 @@ do
 	})
 
 	local juju_text = drawing_proxy["new"]("Text", {
-		["Font"] = 1,
+		["Font"] = 2,
 		["Color"] = color3_fromrgb(255, 255, 255),
 		["Text"] = getgenv().script_name or "juju",
 		["Parent"] = logo,
@@ -775,7 +804,7 @@ do
 	})
 
 	local build_text = drawing_proxy["new"]("Text", {
-		["Font"] = 1,
+		["Font"] = 2,
 		["Color"] = menu["colors"]["accent"],
 		["Text"] = getgenv().script_version or "live",
 		["Parent"] = logo,
@@ -787,8 +816,8 @@ do
 
 	local right_side = drawing_proxy["new"]("Square", {
 		["Parent"] = inside,
-		["Position"] = udim2_new(0, 101, 0, 0),
-		["Size"] = udim2_new(1, -101, 1, 0),
+		["Position"] = udim2_new(0, sidebar_width, 0, 0),
+		["Size"] = udim2_new(1, -sidebar_width, 1, 0),
 		["Color"] = menu["colors"]["background"],
 		["Visible"] = true,
 		["Filled"] = true,
@@ -797,8 +826,8 @@ do
 
 	local right_side_cover = drawing_proxy["new"]("Square", {
 		["Parent"] = inside,
-		["Position"] = udim2_new(0, 101, 0, 0),
-		["Size"] = udim2_new(1, -101, 1, 0),
+		["Position"] = udim2_new(0, sidebar_width, 0, 0),
+		["Size"] = udim2_new(1, -sidebar_width, 1, 0),
 		["Color"] = menu["colors"]["background"],
 		["Visible"] = true,
 		["Filled"] = true,
@@ -808,7 +837,7 @@ do
 
 	local right_side_divider = drawing_proxy["new"]("Square", {
 		["Parent"] = inside,
-		["Position"] = udim2_new(0, 100, 0, 0),
+		["Position"] = udim2_new(0, sidebar_width - 1, 0, 0),
 		["Size"] = udim2_new(0, 1, 1, 0),
 		["Color"] = menu["colors"]["background"],
 		["Visible"] = true,
@@ -863,6 +892,18 @@ do
 		["Color"] = menu["colors"]["accent"],
 		["Visible"] = true,
 	})
+	local decorative_stripes = {}
+	for i = 1, 6 do
+		decorative_stripes[i] = drawing_proxy["new"]("Square", {
+			["Parent"] = inside,
+			["Position"] = udim2_new(0, 15, 0, 56 + (i - 1) * 2.5),
+			["Size"] = udim2_new(0, 68 - (i - 1) * 7, 0, 1),
+			["Color"] = menu["colors"]["accent"],
+			["Transparency"] = 0.28 - (i - 1) * 0.035,
+			["Filled"] = true,
+			["Visible"] = true,
+		})
+	end
 
 	local search_border = drawing_proxy["new"]("Image", {
 		["Parent"] = frame,
@@ -914,7 +955,7 @@ do
 		["Color"] = menu["colors"]["active_text"],
 		["Text"] = "",
 		["Size"] = 12,
-		["Font"] = 1,
+		["Font"] = 2,
 		["Transparency"] = 1,
 		["Visible"] = true,
 		["Parent"] = search_inside,
@@ -924,7 +965,7 @@ do
 
 	local drag_frame = drawing_proxy["new"]("Image", {
 		["Position"] = menu_position,
-		["Size"] = udim2_new(0, 575, 0, 450),
+		["Size"] = udim2_new(0, window_width, 0, window_height),
 		["Color"] = menu["colors"]["background"],
 		["Rounding"] = 4,
 		["Data"] = pixel_image_data,
@@ -932,6 +973,30 @@ do
 		["ZIndex"] = 1000,
 		["Visible"] = false,
 	})
+	local resize_hitbox = drawing_proxy["new"]("Square", {
+		["Parent"] = inside,
+		["Position"] = udim2_new(1, -22, 1, -22),
+		["Size"] = udim2_new(0, 18, 0, 18),
+		["Color"] = menu["colors"]["accent"],
+		["Transparency"] = 0.35,
+		["Thickness"] = 1,
+		["Filled"] = false,
+		["ZIndex"] = 30,
+		["Visible"] = true,
+	})
+	local resize_grip = {}
+	for i = 1, 3 do
+		resize_grip[i] = drawing_proxy["new"]("Square", {
+			["Parent"] = resize_hitbox,
+			["Position"] = udim2_new(0, 3 + (i - 1) * 4, 0, 10 - (i - 1) * 4),
+			["Size"] = udim2_new(0, 1, 0, 5),
+			["Color"] = menu["colors"]["accent"],
+			["Transparency"] = 0.5,
+			["Filled"] = true,
+			["ZIndex"] = 31,
+			["Visible"] = true,
+		})
+	end
 
 	local drag_inside = drawing_proxy["new"]("Image", {
 		["Position"] = udim2_new(0, 1, 0, 1),
@@ -1059,7 +1124,7 @@ do
 		["Color"] = color3_fromrgb(255, 255, 255),
 		["Text"] = "hotkeys",
 		["Size"] = 12,
-		["Font"] = 1,
+		["Font"] = 2,
 		["Transparency"] = 0,
 		["Visible"] = true,
 		["Parent"] = list_inside,
@@ -1293,7 +1358,7 @@ do
 				["Color"] = menu["colors"]["keybind_text"],
 				["Text"] = element["name"],
 				["Size"] = 12,
-				["Font"] = 1,
+				["Font"] = 2,
 				["Transparency"] = 0,
 				["Visible"] = true,
 				["Parent"] = keybind_inside,
@@ -1355,7 +1420,7 @@ do
 				["Color"] = menu["colors"]["accent"],
 				["Text"] = element["drawings"]["slider_text"]["Text"],
 				["Size"] = 12,
-				["Font"] = 1,
+				["Font"] = 2,
 				["Transparency"] = 0,
 				["Visible"] = true,
 				["Parent"] = keybind_inside,
@@ -1376,7 +1441,7 @@ do
 				["Color"] = menu["colors"]["keybind_text"],
 				["Text"] = element["name"],
 				["Size"] = 12,
-				["Font"] = 1,
+				["Font"] = 2,
 				["Transparency"] = 0,
 				["Visible"] = true,
 				["Parent"] = keybind_inside,
@@ -1461,7 +1526,7 @@ do
 				["Color"] = menu["colors"]["keybind_text"],
 				["Text"] = element["name"],
 				["Size"] = 12,
-				["Font"] = 1,
+				["Font"] = 2,
 				["Transparency"] = 0,
 				["Visible"] = true,
 				["Parent"] = keybind_inside,
@@ -2007,7 +2072,7 @@ do
 					["Color"] = menu["colors"]["inactive_text"],
 					["Text"] = path,
 					["Size"] = 12,
-					["Font"] = 1,
+					["Font"] = 2,
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["Parent"] = search_out,
@@ -2294,7 +2359,7 @@ do
 				["Color"] = menu["colors"]["inactive_text"],
 				["Text"] = option,
 				["Size"] = 12,
-				["Font"] = 1,
+				["Font"] = 2,
 				["Transparency"] = 0,
 				["Visible"] = true,
 				["Parent"] = option_click,
@@ -2849,7 +2914,7 @@ do
 			["Color"] = menu["colors"]["inactive_text"],
 			["Text"] = button[1],
 			["Size"] = 12,
-			["Font"] = 1,
+			["Font"] = 2,
 			["Transparency"] = 0,
 			["Visible"] = true,
 			["Parent"] = button_click,
@@ -3379,6 +3444,30 @@ do
 		local mouse_position = get_mouse_location(user_input_service)
 		local mouse_position_x = mouse_position["X"]
 		local mouse_position_y = mouse_position["Y"]
+		local resize_position = resize_hitbox["real_position"]
+		local resize_size = resize_hitbox["real_size"]
+		if
+			resize_hitbox["Visible"]
+			and mouse_position_x >= resize_position["X"]
+			and mouse_position_x <= resize_position["X"] + resize_size["X"]
+			and mouse_position_y >= resize_position["Y"]
+			and mouse_position_y <= resize_position["Y"] + resize_size["Y"]
+		then
+			local start_x = mouse_position_x
+			local start_y = mouse_position_y
+			local start_width = window_width
+			local start_height = window_height
+			moving = create_connection(mouse["Move"], function()
+				local current = get_mouse_location(user_input_service)
+				window_width = clamp(start_width + (current["X"] - start_x) / ui_scale, 500, 1000)
+				window_height = clamp(start_height + (current["Y"] - start_y) / ui_scale, 360, 850)
+				window_resized = true
+				local new_size = udim2_new(0, window_width, 0, window_height)
+				frame["Size"] = new_size
+				drag_frame["Size"] = new_size
+			end)
+			return
+		end
 
 		if actives["dropdown"] then
 			local border = actives["dropdown"]["drawings"]["dropdown_border"]
@@ -4019,8 +4108,9 @@ do
 		frame["Visible"] = not a
 		inside["Visible"] = not a
 
-		tween(frame, transparency, exponential, out, 0.18)
-		tween(inside, transparency, exponential, out, 0.18)
+		local glass_transparency = menu_open and { Transparency = 0.94 } or hide_transparency
+		tween(frame, glass_transparency, exponential, out, 0.18)
+		tween(inside, glass_transparency, exponential, out, 0.18)
 		tween(logo, transparency, exponential, out, 0.18)
 		tween(juju_text, transparency, exponential, out, 0.18)
 		tween(build_text, transparency, exponential, out, 0.18)
@@ -4296,8 +4386,11 @@ do
 			end
 		end
 
-		local size = current_y_offset > 405 and udim2_new(0, 575, 0, 450 + (current_y_offset - 405))
-			or udim2_new(0, 575, 0, 450)
+		local content_height = current_y_offset > 405 and 450 + (current_y_offset - 405) or 450
+		if not window_resized then
+			window_height = math["max"](window_height, content_height)
+		end
+		local size = udim2_new(0, window_width, 0, window_height)
 		drag_frame["Size"] = size
 		frame["Size"] = size
 	end
@@ -4344,7 +4437,7 @@ do
 				["Text"] = name,
 				["Parent"] = inside,
 				["Size"] = 14,
-				["Font"] = 1,
+				["Font"] = 2,
 				["Position"] = udim2_new(0, 15, 0, initial_offset),
 				["Visible"] = true,
 			}),
@@ -4377,7 +4470,7 @@ do
 				["Color"] = menu["colors"]["inactive_text"],
 				["Text"] = name:sub(1, 12),
 				["Size"] = 12,
-				["Font"] = 1,
+				["Font"] = 2,
 				["Visible"] = is_group_visible,
 				["Parent"] = inside,
 				["Position"] = position,
@@ -4451,6 +4544,83 @@ do
 		end
 
 		return new_tab
+	end
+
+	function new_tab:create_subtab(subtab_name)
+		local tab = self
+		local subtabs = tab["subtabs"] or {}
+		tab["subtabs"] = subtabs
+		local label = drawing_proxy["new"]("Text", {
+			["Parent"] = tab["frame"],
+			["Position"] = udim2_new(0, tab["subtabs_width"] or 12, 0, 4),
+			["Size"] = 12,
+			["Font"] = 2,
+			["Color"] = menu["colors"]["inactive_text"],
+			["Text"] = subtab_name,
+			["Transparency"] = 1,
+			["Visible"] = true,
+		})
+		local width = label["TextBounds"]["X"] + 18
+		local x = tab["subtabs_width"] or 12
+		label["Position"] = udim2_new(0, x + 5, 0, 4)
+		local hitbox = drawing_proxy["new"]("Square", {
+			["Parent"] = tab["frame"],
+			["Position"] = udim2_new(0, x, 0, 0),
+			["Size"] = udim2_new(0, width, 0, 25),
+			["Transparency"] = 0,
+			["Filled"] = true,
+			["Visible"] = true,
+		})
+		local underline = drawing_proxy["new"]("Square", {
+			["Parent"] = tab["frame"],
+			["Position"] = udim2_new(0, x + 5, 0, 22),
+			["Size"] = udim2_new(0, width - 10, 0, 1),
+			["Color"] = menu["colors"]["accent"],
+			["Transparency"] = 0,
+			["Filled"] = true,
+			["Visible"] = true,
+		})
+		local subtab = {
+			name = subtab_name,
+			label = label,
+			hitbox = hitbox,
+			underline = underline,
+			sections = {},
+		}
+		subtabs[#subtabs + 1] = subtab
+		menu["subtabs"][#menu["subtabs"] + 1] = subtab
+		tab["subtabs_width"] = x + width + 4
+
+		local function select_subtab()
+			tab["active_subtab"] = subtab
+			for _, item in subtabs do
+				local active = item == subtab
+				tween(item["label"], {
+					Color = active and menu["colors"]["active_text"] or menu["colors"]["inactive_text"],
+				}, circular, out, 0.15)
+				tween(item["underline"], { Transparency = active and 0.8 or 0 }, circular, out, 0.15)
+				for _, child_section in item["sections"] do
+					child_section["border"]["Visible"] = active
+				end
+			end
+		end
+
+		function subtab:create_section(name, side, size, y_position)
+			local child_section = group:create_section(tab["name"], name, side, size, y_position or 0.06)
+			if child_section then
+				self["sections"][#self["sections"] + 1] = child_section
+				child_section["border"]["Visible"] = tab["active_subtab"] == self
+			end
+			return child_section
+		end
+
+		create_click_connection(hitbox, hitbox, select_subtab)
+		if #subtabs == 1 then
+			select_subtab()
+		else
+			underline["Transparency"] = 0
+		end
+		return subtab
 	end
 
 	function group:remove_tab(name)
@@ -4586,7 +4756,7 @@ do
 			["Parent"] = section_inside,
 			["Position"] = udim2_new(0, 15, 0, -8),
 			["Size"] = 12,
-			["Font"] = 1,
+			["Font"] = 2,
 			["ZIndex"] = 4,
 			["Visible"] = true,
 		})
@@ -4681,7 +4851,7 @@ do
 			["Parent"] = section_inside,
 			["Position"] = udim2_new(0, 15, 0, -8),
 			["Size"] = 12,
-			["Font"] = 1,
+			["Font"] = 2,
 			["Visible"] = true,
 		})
 		local text_bounds = section_label["TextBounds"]["X"] + 20
@@ -4728,7 +4898,7 @@ do
 			["Color"] = menu["colors"]["inactive_text"],
 			["Text"] = "search",
 			["Size"] = 12,
-			["Font"] = 1,
+			["Font"] = 2,
 			["Transparency"] = 1,
 			["Visible"] = true,
 			["Parent"] = search_inside,
@@ -4820,7 +4990,7 @@ do
 			["Color"] = menu["colors"]["inactive_text"],
 			["Text"] = info["text"],
 			["Size"] = 12,
-			["Font"] = 1,
+			["Font"] = 2,
 			["Transparency"] = 1,
 			["Visible"] = true,
 			["Parent"] = inside,
@@ -4864,7 +5034,7 @@ do
 				["Color"] = menu["colors"]["dark_text"],
 				["Text"] = text2_text,
 				["Size"] = 12,
-				["Font"] = 1,
+				["Font"] = 2,
 				["Transparency"] = 1,
 				["Visible"] = true,
 				["Parent"] = inside,
@@ -5189,7 +5359,7 @@ do
 					["Color"] = menu["colors"]["inactive_text"],
 					["Text"] = info["text"],
 					["Size"] = 12,
-					["Font"] = 1,
+					["Font"] = 2,
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["Parent"] = frame,
@@ -5248,7 +5418,7 @@ do
 					["Data"] = checkmark_image_data,
 					["Transparency"] = 0,
 					["ZIndex"] = zindex + 3,
-					["Color"] = menu["colors"]["accent"],
+					["Color"] = menu["colors"]["background"],
 					["Visible"] = true,
 				})
 
@@ -5330,7 +5500,7 @@ do
 					["Color"] = menu["colors"]["dark_text"],
 					["Text"] = "",
 					["Size"] = 12,
-					["Font"] = 1,
+					["Font"] = 2,
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["Parent"] = frame,
@@ -5438,7 +5608,7 @@ do
 					["Color"] = menu["colors"]["dark_text"],
 					["Text"] = "...",
 					["Size"] = 12,
-					["Font"] = 1,
+					["Font"] = 2,
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["Parent"] = textbox_inside,
@@ -5495,7 +5665,7 @@ do
 					["Color"] = menu["colors"]["dark_text"],
 					["Text"] = "none",
 					["Size"] = 12,
-					["Font"] = 1,
+					["Font"] = 2,
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["Parent"] = dropdown_inside,
@@ -5648,7 +5818,7 @@ do
 					["Color"] = menu["colors"]["dark_text"],
 					["Text"] = "none",
 					["Size"] = 12,
-					["Font"] = 1,
+					["Font"] = 2,
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["Parent"] = keybind_inside,
@@ -5776,7 +5946,7 @@ do
 					["Color"] = menu["colors"]["inactive_text"],
 					["Text"] = "",
 					["Size"] = 12,
-					["Font"] = 1,
+					["Font"] = 2,
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["Parent"] = frame,
@@ -5822,7 +5992,7 @@ do
 					["Color"] = menu["colors"]["dark_text"],
 					["Text"] = info["text"],
 					["Size"] = 12,
-					["Font"] = 1,
+					["Font"] = 2,
 					["Transparency"] = 1,
 					["Visible"] = true,
 					["Parent"] = button_inside,
@@ -5970,6 +6140,13 @@ do
 		tween(
 			drawings["text"],
 			{ Color = value and menu["colors"]["active_text"] or menu["colors"]["inactive_text"] },
+			exponential,
+			out,
+			0.2
+		)
+		tween(
+			drawings["toggle_inside"],
+			{ Color = value and menu["colors"]["accent"] or menu["colors"]["background"] },
 			exponential,
 			out,
 			0.2
@@ -6465,7 +6642,7 @@ do
 					["Color"] = colors["active_text"],
 					["Text"] = text,
 					["Size"] = 12,
-					["Font"] = 1,
+					["Font"] = 2,
 					["ZIndex"] = 1102,
 					["Transparency"] = 0,
 					["Visible"] = true,
@@ -6510,7 +6687,7 @@ do
 
 				inside["Position"] = udim2_new(
 					0,
-					(viewport_size["X"] * 0.5) - (x_size * 0.5),
+					(viewport_size["X"] * 0.5) - (x_size * ui_scale * 0.5),
 					0,
 					viewport_size["Y"] * 0.88 - (#notifications * 29 - 5)
 				)
@@ -6582,6 +6759,17 @@ do
 
 			tab_line["Color"] = color
 			drag_logo["Color"] = color
+			window_glow["Color"] = color
+			resize_hitbox["Color"] = color
+			for i = 1, #resize_grip do
+				resize_grip[i]["Color"] = color
+			end
+			for i = 1, #decorative_stripes do
+				decorative_stripes[i]["Color"] = color
+			end
+			for _, subtab in menu["subtabs"] do
+				subtab["underline"]["Color"] = color
+			end
 			for name, group in menu["groups"] do
 				group["text"]["Color"] = color
 				group["line"]["Color"] = color
@@ -6616,7 +6804,10 @@ do
 							end
 
 							if checkmark then
-								checkmark["Color"] = color
+								checkmark["Color"] = drawings["toggle_inside"] and menu["colors"]["background"] or color
+							end
+							if drawings["toggle_inside"] and flags[element["toggle_flag"]] then
+								drawings["toggle_inside"]["Color"] = color
 							end
 						end
 					end
@@ -6638,7 +6829,10 @@ do
 					end
 
 					if checkmark then
-						checkmark["Color"] = color
+						checkmark["Color"] = drawings["toggle_inside"] and menu["colors"]["background"] or color
+					end
+					if drawings["toggle_inside"] and flags[element["toggle_flag"]] then
+						drawings["toggle_inside"]["Color"] = color
 					end
 				end
 			end
@@ -8147,7 +8341,8 @@ do
 									local inside = drawings["inside"]
 
 									if toggle_inside then
-										toggle_inside["Color"] = color
+										toggle_inside["Color"] = flags[element["toggle_flag"]] and menu["colors"]["accent"] or color
+										drawings["checkmark"]["Color"] = color
 									end
 
 									if dropdown_inside then
@@ -8195,7 +8390,8 @@ do
 							local inside = drawings["inside"]
 
 							if toggle_inside then
-								toggle_inside["Color"] = color
+								toggle_inside["Color"] = flags[element["toggle_flag"]] and menu["colors"]["accent"] or color
+								drawings["checkmark"]["Color"] = color
 							end
 
 							if dropdown_inside then

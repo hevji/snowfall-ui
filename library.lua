@@ -347,61 +347,89 @@ do
 
 		local files = {
 			["assets"] = {
-				["api.lua"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/api.lua"),
-				["sparkle.ogg"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/sparkle.ogg"),
-				["skeet.ogg"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/skeet.ogg"),
-				["neverlose.ogg"] = safeHttp(
-					"https://raw.githubusercontent.com/panduh16/juju/main/assets/neverlose.ogg"
-				),
-				["break.ogg"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/break.ogg"),
-				["mc bow.ogg"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/mc%20bow.ogg"),
-				["primordial.ogg"] = safeHttp(
-					"https://raw.githubusercontent.com/panduh16/juju/main/assets/primordial.ogg"
-				),
-				["rust.ogg"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/rust.ogg"),
-				["sexy.ogg"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/sexy.ogg"),
-				["jaydes.png"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/jaydes.png"),
-				["1.png"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/1.png"),
-				["2.png"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/2.png"),
-				["logo.png"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/logo.png"),
-				["saturation.png"] = safeHttp(
-					"https://raw.githubusercontent.com/panduh16/juju/main/assets/saturation.png"
-				),
+				["api.lua"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/api.lua")
+				end,
+				["logo.png"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/logo.png")
+				end,
+				["saturation.png"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/saturation.png")
+				end,
 			},
-			["custom"] = {
-				["textures.json"] = safeHttp(
-					"https://raw.githubusercontent.com/panduh16/juju/main/assets/textures.json"
-				),
-				["character.rbxm"] = debugRBXM(
-					"custom",
-					"character.rbxm",
-					"https://raw.githubusercontent.com/panduh16/juju/main/assets/character.rbxm"
-				),
-				["pinksky.rbxm"] = debugRBXM(
-					"custom",
-					"pinksky.rbxm",
-					"https://raw.githubusercontent.com/panduh16/juju/main/assets/pinksky.rbxm"
-				),
-				["crunch.ogg"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/juju.ogg"),
-				["scar.ogg"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/scar.ogg"),
-				["x hit.rbxm"] = debugRBXM(
-					"custom",
-					"x hit.rbxm",
-					"https://raw.githubusercontent.com/panduh16/juju/main/assets/x%20hit.rbxm"
-				),
-				["blossom aura.rbxm"] = debugRBXM(
-					"custom",
-					"blossom aura.rbxm",
-					"https://raw.githubusercontent.com/panduh16/juju/main/assets/blossom%20aura.rbxm"
-				),
-				["spam.json"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/spam.json"),
-			},
-			["themes"] = {
-				["default.th"] = safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/default.th"),
-			},
+			["custom"] = {},
+			["themes"] = {},
 			["addons"] = {},
 			["configs"] = {},
 			["data.dat"] = [[{"notifications":true,"theme":"","favorites":[]}]],
+		}
+		local optional_files = {
+			["assets"] = {
+				["sparkle.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/sparkle.ogg")
+				end,
+				["skeet.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/skeet.ogg")
+				end,
+				["neverlose.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/neverlose.ogg")
+				end,
+				["break.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/break.ogg")
+				end,
+				["mc bow.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/mc%20bow.ogg")
+				end,
+				["primordial.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/primordial.ogg")
+				end,
+				["rust.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/rust.ogg")
+				end,
+				["sexy.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/sexy.ogg")
+				end,
+				["jaydes.png"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/jaydes.png")
+				end,
+				["1.png"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/1.png")
+				end,
+				["2.png"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/2.png")
+				end,
+			},
+			["custom"] = {
+				["textures.json"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/textures.json")
+				end,
+				["character.rbxm"] = function()
+					return debugRBXM("custom", "character.rbxm", "https://raw.githubusercontent.com/panduh16/juju/main/assets/character.rbxm")
+				end,
+				["pinksky.rbxm"] = function()
+					return debugRBXM("custom", "pinksky.rbxm", "https://raw.githubusercontent.com/panduh16/juju/main/assets/pinksky.rbxm")
+				end,
+				["crunch.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/juju.ogg")
+				end,
+				["scar.ogg"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/scar.ogg")
+				end,
+				["x hit.rbxm"] = function()
+					return debugRBXM("custom", "x hit.rbxm", "https://raw.githubusercontent.com/panduh16/juju/main/assets/x%20hit.rbxm")
+				end,
+				["blossom aura.rbxm"] = function()
+					return debugRBXM("custom", "blossom aura.rbxm", "https://raw.githubusercontent.com/panduh16/juju/main/assets/blossom%20aura.rbxm")
+				end,
+				["spam.json"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/spam.json")
+				end,
+			},
+			["themes"] = {
+				["default.th"] = function()
+					return safeHttp("https://raw.githubusercontent.com/panduh16/juju/main/assets/default.th")
+				end,
+			},
 		}
 		if not isfolder(file_path) then
 			makefolder(file_path)
@@ -420,12 +448,23 @@ do
 					end
 					recursive_check(path .. "/", data)
 				elseif not isfile(path) then
-					writefile(path, type(data) == "function" and data() or data)
+					local contents = type(data) == "function" and data() or data
+					if contents ~= nil then
+						writefile(path, contents)
+					end
 				end
 			end
 		end
 
 		recursive_check(file_path .. "/", files)
+		delay(1, function()
+			local ok, err = pcall(function()
+				recursive_check(file_path .. "/", optional_files)
+			end)
+			if not ok then
+				warn("Failed to prepare optional Snowfall assets:", err)
+			end
+		end)
 	end
 
 	-- > ( custom drawing )
@@ -4299,6 +4338,20 @@ do
 	local hovering = nil
 
 	pop_menu = LPH_JIT_MAX(function(a)
+		if a then
+			menu_open = false
+			menu_references["glass_blur"]["Enabled"] = false
+			cursor["Transparency"] = 0
+			frame["Visible"] = false
+			inside["Visible"] = false
+			if ui_state.mouse_behavior_saved then
+				user_input_service["MouseBehavior"] = ui_state.original_mouse_behavior or Enum["MouseBehavior"]["Default"]
+				ui_state.mouse_behavior_saved = false
+			end
+			user_input_service["MouseIconEnabled"] = ui_state.original_mouse_icon_enabled
+			return
+		end
+
 		if moving then
 			moving:Disconnect()
 			moving = nil
@@ -4366,7 +4419,7 @@ do
 			end
 			user_input_service["MouseBehavior"] = Enum["MouseBehavior"]["Default"]
 			menu_references["glass_blur"]["Enabled"] = true
-			tween(menu_references["glass_blur"], { Size = 5 }, exponential, out, 0.2)
+			tween(menu_references["glass_blur"], { Size = 2 }, exponential, out, 0.2)
 		else
 			if ui_state.mouse_behavior_saved then
 				user_input_service["MouseBehavior"] = ui_state.original_mouse_behavior or Enum["MouseBehavior"]["Default"]
@@ -9398,7 +9451,7 @@ do
 			run_service["Heartbeat"],
 			LPH_NO_VIRTUALIZE(function(dt)
 				for i = 1, #heartbeat do
-					spawn(heartbeat[i], dt)
+					heartbeat[i](dt)
 				end
 			end)
 		)

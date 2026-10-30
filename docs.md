@@ -34,6 +34,8 @@ local colors = appearance:create_section("Colors", 1, 1)
 
 `subtab:create_section(name, side, height, y_position)` uses the same section layout as `group:create_section(tab_name, name, side, height, y_position)`. `side` is `1` or `2`; `height` is the fraction of the available content area to occupy. Subtab sections fit below the subtab strip and remain inside the tab frame. Subtab underlines match the label width and stay solid; the active label and underline use the accent color with a soft glow just beneath the line, while inactive underlines stay subdued. Switching subtabs animates their section panels. The line under each `menu.create_group(...)` heading fades from left to right.
 
+When a tab has more subtabs than fit in the available width, scroll the mouse wheel over the subtab strip to move through them. The bottom-right resize handle can widen the menu up to the space available on screen.
+
 For a classic tab without subtabs:
 
 ```lua

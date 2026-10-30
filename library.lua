@@ -882,23 +882,25 @@ do
 		["Transparency"] = 1,
 	})
 
-	local right_side = drawing_proxy["new"]("Square", {
+	local right_side = drawing_proxy["new"]("Image", {
 		["Parent"] = inside,
-		["Position"] = udim2_new(0, ui_state.sidebar_width, 0, 0),
-		["Size"] = udim2_new(1, -ui_state.sidebar_width, 1, 0),
+		["Position"] = udim2_new(0, ui_state.sidebar_width - 7, 0, 0),
+		["Size"] = udim2_new(1, -ui_state.sidebar_width + 7, 1, 0),
 		["Color"] = menu["colors"]["background"],
+		["Data"] = pixel_image_data,
+		["Rounding"] = 7,
 		["Visible"] = true,
-		["Filled"] = true,
 		["Transparency"] = 1,
 	})
 
-	local right_side_cover = drawing_proxy["new"]("Square", {
+	local right_side_cover = drawing_proxy["new"]("Image", {
 		["Parent"] = inside,
-		["Position"] = udim2_new(0, ui_state.sidebar_width, 0, 0),
-		["Size"] = udim2_new(1, -ui_state.sidebar_width, 1, 0),
+		["Position"] = udim2_new(0, ui_state.sidebar_width - 7, 0, 0),
+		["Size"] = udim2_new(1, -ui_state.sidebar_width + 7, 1, 0),
 		["Color"] = menu["colors"]["background"],
+		["Data"] = pixel_image_data,
+		["Rounding"] = 7,
 		["Visible"] = true,
-		["Filled"] = true,
 		["ZIndex"] = 999,
 		["Transparency"] = 0,
 	})
@@ -3699,12 +3701,22 @@ do
 			local start_height = ui_state.height
 			moving = create_connection(mouse["Move"], function()
 				local current = get_mouse_location(user_input_service)
-				ui_state.width = clamp(start_width + (current["X"] - start_x) / ui_state.scale, 500, 1000)
-				ui_state.height = clamp(start_height + (current["Y"] - start_y) / ui_state.scale, 360, 850)
+				local viewport_size = camera["ViewportSize"]
+				local max_width = math["max"](
+					500,
+					floor((viewport_size["X"] - menu_position["X"]["Offset"] - 16) / ui_state.scale)
+				)
+				local max_height = math["max"](
+					360,
+					floor((viewport_size["Y"] - menu_position["Y"]["Offset"] - 16) / ui_state.scale)
+				)
+				ui_state.width = clamp(start_width + (current["X"] - start_x) / ui_state.scale, 500, max_width)
+				ui_state.height = clamp(start_height + (current["Y"] - start_y) / ui_state.scale, 360, max_height)
 				ui_state.resized = true
 				local new_size = udim2_new(0, ui_state.width, 0, ui_state.height)
 				frame["Size"] = new_size
 				drag_frame["Size"] = new_size
+				menu.update_layout()
 			end)
 			return
 		end
@@ -4724,6 +4736,9 @@ do
 							tab_text_frame["Size"] = udim2_new(0, 70, 0, tab_text["TextBounds"]["Y"])
 						end
 					end
+					if tab["update_subtab_layout"] then
+						tab["update_subtab_layout"]()
+					end
 				end
 				current_y_offset = current_y_offset + group["current_height"]
 			end
@@ -4910,6 +4925,66 @@ do
 	menu["create_subtab"] = function(tab, subtab_name)
 		local subtabs = tab["subtabs"] or {}
 		tab["subtabs"] = subtabs
+		local function update_subtab_layout()
+			local viewport = tab["subtab_scroll_viewport"]
+			local viewport_width = viewport and viewport["real_size"]["X"] / ui_state.scale or 0
+			if viewport_width <= 0 then
+				return
+			end
+
+			local right_bound = 12 + viewport_width
+			local max_offset = math["max"](0, (tab["subtabs_width"] or 12) - right_bound)
+			local scroll_index = tab["subtab_scroll_index"] or 1
+			if max_offset == 0 then
+				scroll_index = 1
+			end
+			scroll_index = clamp(scroll_index, 1, math["max"](#subtabs, 1))
+			tab["subtab_scroll_index"] = scroll_index
+
+			local first_visible = subtabs[scroll_index]
+			local offset = first_visible and first_visible["content_x"] - 12 or 0
+			offset = clamp(offset, 0, max_offset)
+			tab["subtab_scroll_offset"] = offset
+
+			for _, item in subtabs do
+				local x = item["content_x"] - offset
+				local visible = x >= 12 and x + item["width"] <= right_bound
+				item["label"]["Position"] = udim2_new(0, x + 5, 0, 4)
+				item["hitbox"]["Position"] = udim2_new(0, x, 0, 0)
+				item["glow"]["Position"] = udim2_new(0, x + 1, 0, 23)
+				item["underline"]["Position"] = udim2_new(0, x + 5, 0, 22)
+				item["label"]["Visible"] = visible
+				item["hitbox"]["Visible"] = visible
+				item["glow"]["Visible"] = visible
+				item["underline"]["Visible"] = visible
+			end
+		end
+		tab["update_subtab_layout"] = update_subtab_layout
+
+		local scroll_viewport = tab["subtab_scroll_viewport"]
+		if not scroll_viewport then
+			scroll_viewport = drawing_proxy["new"]("Square", {
+				["Parent"] = tab["frame"],
+				["Position"] = udim2_new(0, 12, 0, 0),
+				["Size"] = udim2_new(1, -24, 0, 26),
+				["Filled"] = true,
+				["Transparency"] = 0,
+				["ZIndex"] = 0,
+				["Visible"] = true,
+			})
+			tab["subtab_scroll_viewport"] = scroll_viewport
+			create_scroll_connection(scroll_viewport, scroll_viewport, function(is_up)
+				if #subtabs < 2 then
+					return
+				end
+				local current_index = tab["subtab_scroll_index"] or 1
+				local next_index = clamp(current_index + (is_up and -1 or 1), 1, #subtabs)
+				if next_index ~= current_index then
+					tab["subtab_scroll_index"] = next_index
+					update_subtab_layout()
+				end
+			end)
+		end
 		local label = drawing_proxy["new"]("Text", {
 			["Parent"] = tab["frame"],
 			["Position"] = udim2_new(0, tab["subtabs_width"] or 12, 0, 4),
@@ -4958,6 +5033,8 @@ do
 			hitbox = hitbox,
 			glow = underline_glow,
 			underline = underline,
+			content_x = x,
+			width = width,
 			active = false,
 			sections = {},
 		}
@@ -5064,6 +5141,7 @@ do
 			tab["active_subtab"] = subtab
 		end
 		update_subtab_styles(false)
+		update_subtab_layout()
 		return subtab
 	end
 
@@ -9450,8 +9528,12 @@ do
 		create_connection(
 			run_service["Heartbeat"],
 			LPH_NO_VIRTUALIZE(function(dt)
-				for i = 1, #heartbeat do
-					heartbeat[i](dt)
+				for i = #heartbeat, 1, -1 do
+					local callback = heartbeat[i]
+					local ok = pcall(callback, dt)
+					if not ok and heartbeat[i] == callback then
+						remove(heartbeat, i)
+					end
 				end
 			end)
 		)

@@ -4757,7 +4757,7 @@ do
 			["Position"] = udim2_new(0, x + 5, 0, 22),
 			["Size"] = udim2_new(0, text_width, 0, 1),
 			["Color"] = menu["colors"]["inactive_text"],
-			["Transparency"] = 1,
+			["Transparency"] = 0.2,
 			["Filled"] = true,
 			["Visible"] = true,
 		})
@@ -4780,7 +4780,7 @@ do
 				item["active"] = active
 				item["label"]["Color"] = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"]
 				item["underline"]["Color"] = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"]
-				item["underline"]["Transparency"] = active and 0 or 1
+				item["underline"]["Transparency"] = active and 1 or 0.2
 				for _, child_section in item["sections"] do
 					child_section["border"]["Visible"] = active
 				end

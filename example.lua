@@ -1,6 +1,10 @@
 -- Snowfall UI example
 -- Run in a Roblox executor environment with the required Drawing/filesystem APIs.
 
+-- Optional: choose where Snowfall stores its assets, configs, themes, and add-ons.
+-- Set this before loading library.lua. Remove it to use the default "juju recode" folder.
+getgenv().custom_folder = "snowfall-ui"
+
 local LIBRARY_URL = "https://raw.githubusercontent.com/hevji/snowfall-ui/main/library.lua"
 local request_ok, source = pcall(function()
 	return game:HttpGet(LIBRARY_URL)
@@ -13,6 +17,7 @@ assert(type(loader) == "function", "Could not compile library.lua: " .. tostring
 
 local library = loader()
 assert(type(library) == "table", "library.lua loaded but did not return its API table")
+print("Snowfall storage folder:", library.folder_path)
 local menu = library.menu
 local flags = library.flags
 

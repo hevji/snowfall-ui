@@ -7,12 +7,16 @@ Snowfall UI is a drawing-based Roblox interface library with a Lithium-inspired 
 Run this in an environment that supports the Drawing API and the filesystem and executor functions used by `library.lua`:
 
 ```lua
+-- Optional: choose a folder before loading. Defaults to "juju recode".
+getgenv().custom_folder = "snowfall-ui"
+
 local url = "https://raw.githubusercontent.com/hevji/snowfall-ui/main/library.lua"
 local source = game:HttpGet(url)
 local loader, compile_error = loadstring(source)
 assert(loader, "Could not compile library.lua: " .. tostring(compile_error))
 local library = loader()
 assert(type(library) == "table", "library.lua did not return its API table")
+print("Snowfall storage folder:", library.folder_path)
 
 local menu = library.menu
 local group = menu.create_group("Showcase")

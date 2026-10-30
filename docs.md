@@ -5,6 +5,10 @@ Snowfall UI is a drawing-based Roblox UI library. It creates the window, input h
 ## Load the library
 
 ```lua
+-- Optional: change the storage root before the library creates its folders.
+-- Remove this line to use the default folder, "juju recode".
+getgenv().custom_folder = "snowfall-ui"
+
 local source = game:HttpGet("https://raw.githubusercontent.com/hevji/snowfall-ui/main/library.lua")
 local loader, compile_error = loadstring(source)
 assert(loader, "Could not compile library.lua: " .. tostring(compile_error))
@@ -12,7 +16,10 @@ local library = loader()
 assert(type(library) == "table", "library.lua did not return its API table")
 local menu = library.menu
 local flags = library.flags
+print("Snowfall storage folder:", library.folder_path)
 ```
+
+`getgenv().custom_folder` must be set before `loader()` runs. It selects the root for Snowfall's assets, configs, themes, add-ons, custom files, and `data.dat`. Use a path accepted by your executor's filesystem; the library trims surrounding whitespace, converts `\` separators to `/`, and removes trailing `/` characters. If the value is missing, empty, or not a string, Snowfall uses `juju recode`. The normalized path is available as `library.folder_path` after loading.
 
 The UI defaults to 125% scale (`menu.ui_scale == 1.25`) and an initial window size of about 913×675 pixels. Drag the header to move it and drag the bottom-right grip to resize its width and height. Resizing does not change the scale factor. The window uses a dark teal palette, Plex text, glass-like translucent surfaces with a subtle scene blur while open, softer rounded outlines, accent glows, one bright divider under the logo and title, and a rounded resize grip.
 

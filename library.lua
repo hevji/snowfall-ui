@@ -24,7 +24,15 @@ end
 
 -- > ( global cheat variables )
 
-local file_path = getgenv().custom_folder or "juju recode"
+local file_path = getgenv().custom_folder
+if type(file_path) ~= "string" then
+	file_path = "juju recode"
+else
+	file_path = file_path:gsub("\\", "/"):gsub("^%s*(.-)%s*$", "%1"):gsub("/+$", "")
+	if file_path == "" then
+		file_path = "juju recode"
+	end
+end
 local user_input_service = cloneref(game:GetService("UserInputService"))
 local ui_state = { original_mouse_icon_enabled = nil }
 local get_mouse_location = user_input_service["GetMouseLocation"]
@@ -9589,6 +9597,7 @@ end
 
 return {
 	["menu"] = menu,
+	["folder_path"] = file_path,
 	["signal"] = signal,
 	["tween"] = tween,
 	["drawing_proxy"] = drawing_proxy,

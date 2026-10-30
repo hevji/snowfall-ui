@@ -14,7 +14,7 @@ local menu = library.menu
 local flags = library.flags
 ```
 
-The UI defaults to 125% scale (`menu.ui_scale == 1.25`) and an initial window size of about 913×675 pixels. Drag the header to move it and drag the bottom-right grip to resize its width and height. Resizing does not change the scale factor. The window uses a dark teal palette, Plex text, a lightly translucent tinted surface, an accent glow, and sidebar stripes that fade out.
+The UI defaults to 125% scale (`menu.ui_scale == 1.25`) and an initial window size of about 913×675 pixels. Drag the header to move it and drag the bottom-right grip to resize its width and height. Resizing does not change the scale factor. The window uses a dark teal palette, Plex text, a lightly translucent tinted surface, an accent glow, one thin sidebar stripe that fades out, and a rounded resize grip.
 
 ## Build the navigation
 
@@ -30,7 +30,9 @@ local appearance = tab:create_subtab("Appearance")
 local colors = appearance:create_section("Colors", 1, 1)
 ```
 
-`subtab:create_section(name, side, height, y_position)` uses the same section layout as `group:create_section(tab_name, name, side, height, y_position)`. `side` is `1` or `2`; `height` is the fraction of the available content area to occupy. Subtab sections fit below the subtab strip and remain inside the tab frame. For a classic tab without subtabs:
+`subtab:create_section(name, side, height, y_position)` uses the same section layout as `group:create_section(tab_name, name, side, height, y_position)`. `side` is `1` or `2`; `height` is the fraction of the available content area to occupy. Subtab sections fit below the subtab strip and remain inside the tab frame. Subtab underlines match the label width; the active underline uses the accent color and inactive underlines stay subdued.
+
+For a classic tab without subtabs:
 
 ```lua
 local tab = group:create_tab("Main")

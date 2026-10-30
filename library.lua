@@ -895,18 +895,19 @@ do
 		["Color"] = menu["colors"]["accent"],
 		["Visible"] = true,
 	})
-	menu_references["decorative_stripes"] = {}
-	for i = 1, 6 do
-		menu_references["decorative_stripes"][i] = drawing_proxy["new"]("Square", {
+	menu_references["decorative_stripes"] = {
+		drawing_proxy["new"]("Image", {
 			["Parent"] = inside,
-			["Position"] = udim2_new(0, 15, 0, 56 + (i - 1) * 2.5),
-			["Size"] = udim2_new(0, 68 - (i - 1) * 7, 0, 1),
+			["Position"] = udim2_new(0, 13, 0, 58),
+			["Size"] = udim2_new(0, 90, 0, 2),
 			["Color"] = menu["colors"]["accent"],
-			["Transparency"] = 0.28 - (i - 1) * 0.035,
-			["Filled"] = true,
+			["Transparency"] = 0,
+			["Data"] = base64_decode(
+				"iVBORw0KGgoAAAANSUhEUgAAAIAAAAADCAYAAABbGge9AAAA90lEQVR42u3SgUYdAABA0WeSSZKZJEmSTJIkSZIkSZIkk0mSJEmSJEkkSZIkSZIkSZJkkpmZJEmSJEmSJEmSJElShz6jdzl/cANvH73ywjNPPPLAPXfccsM1V1xywTlnnHLCMUcccsA+e+yywzZbbLLBOv/5x1/+sMYqv1lhmSUWWWCeOWaZYZopJplgnDFGGWGYIQYZoJ8+eumhmy466aCdNlppoZkmGmmgnjpqqaGaKn5RyU8qKKeMUkoopohCCsgnj1xyyCaLTDJIJ41UUkjmB0kkkkA8ccQSQzRRfOcbkUQQThhfCSWELwQCwQGCAwQH+MQDvAOLqTsM20UNLAAAAABJRU5ErkJggg=="
+			),
 			["Visible"] = true,
-		})
-	end
+		}),
+	}
 
 	local search_border = drawing_proxy["new"]("Image", {
 		["Parent"] = frame,
@@ -976,14 +977,14 @@ do
 		["ZIndex"] = 1000,
 		["Visible"] = false,
 	})
-	menu_references["resize_hitbox"] = drawing_proxy["new"]("Square", {
+	menu_references["resize_hitbox"] = drawing_proxy["new"]("Image", {
 		["Parent"] = inside,
-		["Position"] = udim2_new(1, -22, 1, -22),
-		["Size"] = udim2_new(0, 18, 0, 18),
-		["Color"] = menu["colors"]["accent"],
-		["Transparency"] = 0.35,
-		["Thickness"] = 1,
-		["Filled"] = false,
+		["Position"] = udim2_new(1, -30, 1, -30),
+		["Size"] = udim2_new(0, 24, 0, 24),
+		["Color"] = menu["colors"]["border"],
+		["Transparency"] = 0.12,
+		["Rounding"] = 6,
+		["Data"] = pixel_image_data,
 		["ZIndex"] = 30,
 		["Visible"] = true,
 	})
@@ -991,10 +992,10 @@ do
 	for i = 1, 3 do
 		menu_references["resize_grip"][i] = drawing_proxy["new"]("Square", {
 			["Parent"] = menu_references["resize_hitbox"],
-			["Position"] = udim2_new(0, 3 + (i - 1) * 4, 0, 10 - (i - 1) * 4),
-			["Size"] = udim2_new(0, 1, 0, 5),
+			["Position"] = udim2_new(0, 5 + (i - 1) * 4, 0, 14 - (i - 1) * 4),
+			["Size"] = udim2_new(0, 12 - (i - 1) * 4, 0, 1),
 			["Color"] = menu["colors"]["accent"],
-			["Transparency"] = 0.5,
+			["Transparency"] = 0.25 + (i - 1) * 0.12,
 			["Filled"] = true,
 			["ZIndex"] = 31,
 			["Visible"] = true,
@@ -4739,7 +4740,8 @@ do
 			["Transparency"] = 1,
 			["Visible"] = true,
 		})
-		local width = label["TextBounds"]["X"] + 18
+		local text_width = label["TextBounds"]["X"]
+		local width = text_width + 18
 		local x = tab["subtabs_width"] or 12
 		label["Position"] = udim2_new(0, x + 5, 0, 4)
 		local hitbox = drawing_proxy["new"]("Square", {
@@ -4753,9 +4755,9 @@ do
 		local underline = drawing_proxy["new"]("Square", {
 			["Parent"] = tab["frame"],
 			["Position"] = udim2_new(0, x + 5, 0, 22),
-			["Size"] = udim2_new(0, width - 10, 0, 1),
-			["Color"] = menu["colors"]["accent"],
-			["Transparency"] = 0,
+			["Size"] = udim2_new(0, text_width, 0, 1),
+			["Color"] = menu["colors"]["inactive_text"],
+			["Transparency"] = 0.55,
 			["Filled"] = true,
 			["Visible"] = true,
 		})
@@ -4764,6 +4766,7 @@ do
 			label = label,
 			hitbox = hitbox,
 			underline = underline,
+			active = false,
 			sections = {},
 		}
 		subtabs[#subtabs + 1] = subtab
@@ -4774,10 +4777,14 @@ do
 			tab["active_subtab"] = subtab
 			for _, item in subtabs do
 				local active = item == subtab
+				item["active"] = active
 				tween(item["label"], {
 					Color = active and menu["colors"]["active_text"] or menu["colors"]["inactive_text"],
 				}, circular, out, 0.15)
-				tween(item["underline"], { Transparency = active and 0.12 or 1 }, circular, out, 0.15)
+				tween(item["underline"], {
+					Color = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"],
+					Transparency = active and 0 or 0.55,
+				}, circular, out, 0.15)
 				for _, child_section in item["sections"] do
 					child_section["border"]["Visible"] = active
 				end
@@ -4803,8 +4810,6 @@ do
 		create_click_connection(hitbox, hitbox, select_subtab)
 		if #subtabs == 1 then
 			select_subtab()
-		else
-			underline["Transparency"] = 1
 		end
 		return subtab
 	end
@@ -7025,7 +7030,6 @@ do
 			tab_line["Color"] = color
 			drag_logo["Color"] = color
 			menu_references["window_glow"]["Color"] = color
-			menu_references["resize_hitbox"]["Color"] = color
 			for i = 1, #menu_references["resize_grip"] do
 				menu_references["resize_grip"][i]["Color"] = color
 			end
@@ -7033,7 +7037,7 @@ do
 				menu_references["decorative_stripes"][i]["Color"] = color
 			end
 			for _, subtab in menu["subtabs"] do
-				subtab["underline"]["Color"] = color
+				subtab["underline"]["Color"] = subtab["active"] and color or menu["colors"]["inactive_text"]
 			end
 			for name, group in menu["groups"] do
 				group["text"]["Color"] = color

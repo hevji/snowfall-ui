@@ -896,15 +896,13 @@ do
 		["Visible"] = true,
 	})
 	menu_references["decorative_stripes"] = {
-		drawing_proxy["new"]("Image", {
+		drawing_proxy["new"]("Square", {
 			["Parent"] = inside,
 			["Position"] = udim2_new(0, 13, 0, 58),
-			["Size"] = udim2_new(0, 90, 0, 2),
+			["Size"] = udim2_new(0, 90, 0, 1),
 			["Color"] = menu["colors"]["accent"],
-			["Transparency"] = 0,
-			["Data"] = base64_decode(
-				"iVBORw0KGgoAAAANSUhEUgAAAIAAAAADCAYAAABbGge9AAAA90lEQVR42u3SgUYdAABA0WeSSZKZJEmSTJIkSZIkSZIkk0mSJEmSJEkkSZIkSZIkSZJkkpmZJEmSJEmSJEmSJElShz6jdzl/cANvH73ywjNPPPLAPXfccsM1V1xywTlnnHLCMUcccsA+e+yywzZbbLLBOv/5x1/+sMYqv1lhmSUWWWCeOWaZYZopJplgnDFGGWGYIQYZoJ8+eumhmy466aCdNlppoZkmGmmgnjpqqaGaKn5RyU8qKKeMUkoopohCCsgnj1xyyCaLTDJIJ41UUkjmB0kkkkA8ccQSQzRRfOcbkUQQThhfCSWELwQCwQGCAwQH+MQDvAOLqTsM20UNLAAAAABJRU5ErkJggg=="
-			),
+			["Transparency"] = 0.2,
+			["Filled"] = true,
 			["Visible"] = true,
 		}),
 	}
@@ -1035,6 +1033,8 @@ do
 		if options["subtitle"] ~= nil then
 			build_text["Text"] = tostring(options["subtitle"])
 		end
+		local widest_label = math.max(juju_text["TextBounds"]["X"], build_text["TextBounds"]["X"])
+		menu_references["decorative_stripes"][1]["Size"] = udim2_new(0, 42 + widest_label, 0, 1)
 		if options["logo"] ~= nil then
 			return self:set_logo(options["logo"])
 		end
@@ -4773,22 +4773,24 @@ do
 		menu["subtabs"][#menu["subtabs"] + 1] = subtab
 		tab["subtabs_width"] = x + width + 4
 
-		local function select_subtab()
-			tab["active_subtab"] = subtab
+		local function update_subtab_styles()
+			local selected_subtab = tab["active_subtab"]
 			for _, item in subtabs do
-				local active = item == subtab
+				local active = item == selected_subtab
 				item["active"] = active
-				tween(item["label"], {
-					Color = active and menu["colors"]["active_text"] or menu["colors"]["inactive_text"],
-				}, circular, out, 0.15)
-				tween(item["underline"], {
-					Color = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"],
-					Transparency = active and 0 or 0.55,
-				}, circular, out, 0.15)
+				item["label"]["Color"] = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"]
+				item["underline"]["Color"] = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"]
+				item["underline"]["Transparency"] = active and 0 or 1
+				item["underline"]["Visible"] = active
 				for _, child_section in item["sections"] do
 					child_section["border"]["Visible"] = active
 				end
 			end
+		end
+
+		local function select_subtab()
+			tab["active_subtab"] = subtab
+			update_subtab_styles()
 		end
 
 		function subtab:create_section(name, side, size, y_position)
@@ -4808,9 +4810,10 @@ do
 		end
 
 		create_click_connection(hitbox, hitbox, select_subtab)
-		if #subtabs == 1 then
-			select_subtab()
+		if not tab["active_subtab"] then
+			tab["active_subtab"] = subtab
 		end
+		update_subtab_styles()
 		return subtab
 	end
 
@@ -7037,7 +7040,9 @@ do
 				menu_references["decorative_stripes"][i]["Color"] = color
 			end
 			for _, subtab in menu["subtabs"] do
-				subtab["underline"]["Color"] = subtab["active"] and color or menu["colors"]["inactive_text"]
+				local selected = subtab["active"]
+				subtab["label"]["Color"] = selected and color or menu["colors"]["inactive_text"]
+				subtab["underline"]["Color"] = selected and color or menu["colors"]["inactive_text"]
 			end
 			for name, group in menu["groups"] do
 				group["text"]["Color"] = color

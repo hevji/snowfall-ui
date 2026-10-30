@@ -286,13 +286,13 @@ local menu = {
 		["accent"] = color3_fromrgb(153, 216, 222),
 		["active_text"] = color3_fromrgb(224, 224, 224),
 		["keybind_text"] = color3_fromrgb(190, 190, 190),
-		["border"] = color3_fromrgb(37, 41, 43),
+		["border"] = color3_fromrgb(27, 38, 42),
 		["inactive_text"] = color3_fromrgb(126, 126, 126),
 		["highlighted"] = color3_fromrgb(64, 91, 96),
 		["dark_text"] = color3_fromrgb(95, 111, 113),
 		["image"] = color3_fromrgb(118, 126, 127),
-		["section"] = color3_fromrgb(12, 17, 20),
-		["background"] = color3_fromrgb(5, 8, 10),
+		["section"] = color3_fromrgb(13, 21, 25),
+		["background"] = color3_fromrgb(8, 13, 16),
 		["success"] = color3_fromrgb(153, 216, 222),
 		["error"] = color3_fromrgb(39, 60, 96),
 		["alert"] = color3_fromrgb(30, 51, 61),
@@ -756,12 +756,17 @@ do
 	local frame = drawing_proxy["new"]("Image", {
 		["Position"] = menu_position,
 		["Size"] = udim2_new(0, ui_state.width, 0, ui_state.height),
-		["Color"] = menu["colors"]["background"],
-		["Rounding"] = 4,
+		["Color"] = menu["colors"]["border"],
+		["Rounding"] = 7,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 1,
 		["Visible"] = false,
 	})
+	menu_references["glass_blur"] = Instance["new"]("BlurEffect")
+	menu_references["glass_blur"]["Name"] = "SnowfallGlassBlur"
+	menu_references["glass_blur"]["Size"] = 0
+	menu_references["glass_blur"]["Enabled"] = false
+	menu_references["glass_blur"]["Parent"] = game:GetService("Lighting")
 	menu_references["window_glow"] = drawing_proxy["new"]("Image", {
 		["Parent"] = frame,
 		["Position"] = udim2_new(0, -14, 0, -14),
@@ -769,7 +774,7 @@ do
 		["Color"] = menu["colors"]["accent"],
 		["Rounding"] = 12,
 		["Data"] = shadow_image_data,
-		["Transparency"] = 0.18,
+		["Transparency"] = 0.24,
 		["ZIndex"] = -20,
 		["Visible"] = true,
 	})
@@ -778,7 +783,7 @@ do
 		["Position"] = udim2_new(0, 1, 0, 1),
 		["Size"] = udim2_new(1, -2, 1, -2),
 		["Color"] = menu["colors"]["section"],
-		["Rounding"] = 4,
+		["Rounding"] = 7,
 		["Data"] = pixel_image_data,
 		["Transparency"] = 1,
 		["Parent"] = frame,
@@ -842,7 +847,7 @@ do
 		["Parent"] = inside,
 		["Position"] = udim2_new(0, ui_state.sidebar_width - 1, 0, 0),
 		["Size"] = udim2_new(0, 1, 1, 0),
-		["Color"] = menu["colors"]["background"],
+		["Color"] = menu["colors"]["border"],
 		["Visible"] = true,
 		["Thickness"] = 1,
 		["Filled"] = true,
@@ -895,13 +900,23 @@ do
 		["Color"] = menu["colors"]["accent"],
 		["Visible"] = true,
 	})
+	menu_references["header_glow"] = drawing_proxy["new"]("Image", {
+		["Parent"] = inside,
+		["Position"] = udim2_new(0, 9, 0, 54),
+		["Size"] = udim2_new(0, 98, 0, 9),
+		["Color"] = menu["colors"]["accent"],
+		["Transparency"] = 0.18,
+		["Rounding"] = 5,
+		["Data"] = shadow_image_data,
+		["Visible"] = true,
+	})
 	menu_references["decorative_stripes"] = {
 		drawing_proxy["new"]("Square", {
 			["Parent"] = inside,
 			["Position"] = udim2_new(0, 13, 0, 58),
 			["Size"] = udim2_new(0, 90, 0, 1),
 			["Color"] = menu["colors"]["accent"],
-			["Transparency"] = 0.2,
+			["Transparency"] = 0.9,
 			["Filled"] = true,
 			["Visible"] = true,
 		}),
@@ -1034,7 +1049,9 @@ do
 			build_text["Text"] = tostring(options["subtitle"])
 		end
 		local widest_label = math.max(juju_text["TextBounds"]["X"], build_text["TextBounds"]["X"])
-		menu_references["decorative_stripes"][1]["Size"] = udim2_new(0, 42 + widest_label, 0, 1)
+		local divider_width = 42 + widest_label
+		menu_references["decorative_stripes"][1]["Size"] = udim2_new(0, divider_width, 0, 1)
+		menu_references["header_glow"]["Size"] = udim2_new(0, divider_width + 8, 0, 9)
 		if options["logo"] ~= nil then
 			return self:set_logo(options["logo"])
 		end
@@ -1841,10 +1858,10 @@ do
 			y_overlap = 0
 		end
 
-		tween(settings["inside"], show_transparency, circular, out, 0.15)
+		tween(settings["inside"], { Transparency = 0.92 }, circular, out, 0.15)
 		tween(
 			border,
-			{ tween_position = udim2_new(1, 5 - x_overlap, 0, -y_overlap), Transparency = 1 },
+			{ tween_position = udim2_new(1, 5 - x_overlap, 0, -y_overlap), Transparency = 0.82 },
 			circular,
 			out,
 			0.15
@@ -4254,6 +4271,17 @@ do
 		end
 
 		menu_open = not menu_open
+		if menu_open then
+			menu_references["glass_blur"]["Enabled"] = true
+			tween(menu_references["glass_blur"], { Size = 5 }, exponential, out, 0.2)
+		else
+			tween(menu_references["glass_blur"], { Size = 0 }, exponential, out, 0.16)
+			delay(0.16, function()
+				if not menu_open then
+					menu_references["glass_blur"]["Enabled"] = false
+				end
+			end)
+		end
 
 		local half_transparency = menu_open and half_transparency or hide_transparency
 		local transparency = menu_open and show_transparency or hide_transparency
@@ -4267,14 +4295,13 @@ do
 		frame["Visible"] = not a
 		inside["Visible"] = not a
 
-		local glass_transparency = menu_open and { Transparency = 0.94 } or hide_transparency
-		tween(frame, glass_transparency, exponential, out, 0.18)
-		tween(inside, glass_transparency, exponential, out, 0.18)
+		tween(frame, menu_open and { Transparency = 0.9 } or hide_transparency, exponential, out, 0.18)
+		tween(inside, menu_open and { Transparency = 0.92 } or hide_transparency, exponential, out, 0.18)
 		tween(logo, transparency, exponential, out, 0.18)
 		tween(juju_text, transparency, exponential, out, 0.18)
 		tween(build_text, transparency, exponential, out, 0.18)
-		tween(right_side, transparency, exponential, out, 0.18)
-		tween(right_side_divider, transparency, exponential, out, 0.18)
+		tween(right_side, menu_open and { Transparency = 0.9 } or hide_transparency, exponential, out, 0.18)
+		tween(right_side_divider, menu_open and { Transparency = 0.72 } or hide_transparency, exponential, out, 0.18)
 		tween(search_image, transparency, exponential, out, 0.18)
 		tween(themes_image, transparency, exponential, out, 0.18)
 
@@ -4293,9 +4320,9 @@ do
 
 				if actives["tab"] == tab then
 					for _, section in tab["sections"] do
-						tween(section["border"], transparency, exponential, out, 0.18)
+						tween(section["border"], menu_open and { Transparency = 0.82 } or hide_transparency, exponential, out, 0.18)
 						tween(section["line_two"], half_transparency, exponential, out, 0.18)
-						tween(section["inside"], transparency, exponential, out, 0.18)
+						tween(section["inside"], menu_open and { Transparency = 0.92 } or hide_transparency, exponential, out, 0.18)
 						tween(section["label"], half_transparency, exponential, out, 0.18)
 						tween(section["line"], half_transparency, exponential, out, 0.18)
 
@@ -4666,7 +4693,7 @@ do
 				section:destroy()
 			end
 			for _, subtab in self["subtabs"] or {} do
-				for _, key in { "label", "hitbox", "underline" } do
+				for _, key in { "label", "hitbox", "glow", "underline" } do
 					local drawing = subtab[key]
 					if drawing then
 						drawing:Destroy()
@@ -4752,19 +4779,35 @@ do
 			["Filled"] = true,
 			["Visible"] = true,
 		})
-		local underline = drawing_proxy["new"]("Square", {
+		local underline_glow = drawing_proxy["new"]("Image", {
+			["Parent"] = tab["frame"],
+			["Position"] = udim2_new(0, x + 1, 0, 18),
+			["Size"] = udim2_new(0, text_width + 8, 0, 9),
+			["Color"] = menu["colors"]["accent"],
+			["Transparency"] = 0,
+			["Rounding"] = 5,
+			["Data"] = shadow_image_data,
+			["ZIndex"] = 5,
+			["Visible"] = true,
+		})
+		local underline = drawing_proxy["new"]("Image", {
 			["Parent"] = tab["frame"],
 			["Position"] = udim2_new(0, x + 5, 0, 22),
-			["Size"] = udim2_new(0, text_width, 0, 1),
+			["Size"] = udim2_new(0, text_width, 0, 2),
 			["Color"] = menu["colors"]["inactive_text"],
-			["Transparency"] = 0.2,
-			["Filled"] = true,
+			["Transparency"] = 0.18,
+			["Rounding"] = 1,
+			["Data"] = base64_decode(
+				"iVBORw0KGgoAAAANSUhEUgAAAIAAAAADCAYAAABbGge9AAAA90lEQVR42u3SgUYdAABA0WeSSZKZJEmSTJIkSZIkSZIkk0mSJEmSJEkkSZIkSZIkSZJkkpmZJEmSJEmSJEmSJElShz6jdzl/cANvH73ywjNPPPLAPXfccsM1V1xywTlnnHLCMUcccsA+e+yywzZbbLLBOv/5x1/+sMYqv1lhmSUWWWCeOWaZYZopJplgnDFGGWGYIQYZoJ8+eumhmy466aCdNlppoZkmGmmgnjpqqaGaKn5RyU8qKKeMUkoopohCCsgnj1xyyCaLTDJIJ41UUkjmB0kkkkA8ccQSQzRRfOcbkUQQThhfCSWELwQCwQGCAwQH+MQDvAOLqTsM20UNLAAAAABJRU5ErkJggg=="
+			),
+			["ZIndex"] = 6,
 			["Visible"] = true,
 		})
 		local subtab = {
 			name = subtab_name,
 			label = label,
 			hitbox = hitbox,
+			glow = underline_glow,
 			underline = underline,
 			active = false,
 			sections = {},
@@ -4774,15 +4817,49 @@ do
 		tab["subtabs_width"] = x + width + 4
 
 		local function update_subtab_styles()
+			local function animate_section_out(item, border, base_position)
+				tween(border, {
+					tween_position = base_position - udim2_new(0, 0, 0, 6),
+				}, circular, out, 0.12)
+				delay(0.12, function()
+					if not item["active"] then
+						border["Visible"] = false
+						border["tween_position"] = base_position
+					end
+				end)
+			end
+
 			local selected_subtab = tab["active_subtab"]
 			for _, item in subtabs do
 				local active = item == selected_subtab
+				local was_active = item["active"]
 				item["active"] = active
-				item["label"]["Color"] = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"]
-				item["underline"]["Color"] = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"]
-				item["underline"]["Transparency"] = active and 1 or 0.2
+				tween(item["label"], {
+					Color = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"],
+				}, circular, out, 0.16)
+				tween(item["underline"], {
+					Color = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"],
+					Transparency = active and 1 or 0.18,
+				}, circular, out, 0.18)
+				tween(item["glow"], {
+					Color = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"],
+					Transparency = active and 0.22 or 0,
+				}, circular, out, 0.2)
 				for _, child_section in item["sections"] do
-					child_section["border"]["Visible"] = active
+					local border = child_section["border"]
+					local base_position = child_section["base_position"] or border["tween_position"]
+					if active and not was_active then
+						border["Visible"] = true
+						border["tween_position"] = base_position + udim2_new(0, 0, 0, 9)
+						tween(border, { tween_position = base_position }, circular, out, 0.18)
+					elseif not active and was_active then
+						animate_section_out(item, border, base_position)
+					else
+						border["Visible"] = active
+						if active then
+							border["tween_position"] = base_position
+						end
+					end
 				end
 			end
 		end
@@ -4942,7 +5019,7 @@ do
 			["Size"] = udim2_new(0.5, -5, size, y_position ~= 0 and -10 or 0),
 			["Color"] = menu["colors"]["border"],
 			["Transparency"] = 1,
-			["Rounding"] = 4,
+			["Rounding"] = 6,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = 2,
 			["Visible"] = true,
@@ -4953,7 +5030,7 @@ do
 			["Size"] = udim2_new(1, -2, 1, -1),
 			["Color"] = menu["colors"]["section"],
 			["Transparency"] = 1,
-			["Rounding"] = 4,
+			["Rounding"] = 6,
 			["Data"] = pixel_image_data,
 			["ZIndex"] = 3,
 			["Visible"] = true,
@@ -5000,6 +5077,7 @@ do
 		})
 
 		new_section["border"] = section_border
+		new_section["base_position"] = section_border["tween_position"]
 		new_section["line_two"] = section_line_two
 		new_section["inside"] = section_inside
 		new_section["label"] = section_label
@@ -5040,7 +5118,7 @@ do
 			["Size"] = udim2_new(0.5, -5, 1, 0),
 			["Color"] = menu["colors"]["border"],
 			["Transparency"] = 1,
-			["Rounding"] = 4,
+			["Rounding"] = 6,
 			["Data"] = pixel_image_data,
 			["Visible"] = true,
 		})
@@ -5050,7 +5128,7 @@ do
 			["Size"] = udim2_new(1, -2, 1, -1),
 			["Color"] = menu["colors"]["section"],
 			["Transparency"] = 1,
-			["Rounding"] = 4,
+			["Rounding"] = 6,
 			["Data"] = pixel_image_data,
 			["Visible"] = true,
 		})
@@ -7032,6 +7110,7 @@ do
 			tab_line["Color"] = color
 			drag_logo["Color"] = color
 			menu_references["window_glow"]["Color"] = color
+			menu_references["header_glow"]["Color"] = color
 			for i = 1, #menu_references["resize_grip"] do
 				menu_references["resize_grip"][i]["Color"] = color
 			end
@@ -7042,6 +7121,7 @@ do
 				local selected = subtab["active"]
 				subtab["label"]["Color"] = selected and color or menu["colors"]["inactive_text"]
 				subtab["underline"]["Color"] = selected and color or menu["colors"]["inactive_text"]
+				subtab["glow"]["Color"] = selected and color or menu["colors"]["inactive_text"]
 			end
 			for name, group in menu["groups"] do
 				group["text"]["Color"] = color
@@ -9168,6 +9248,8 @@ do
 				setrawmetatable(instance, mt)
 			end
 
+			menu_references["glass_blur"]["Enabled"] = false
+			menu_references["glass_blur"]:Destroy()
 			user_input_service["MouseIconEnabled"] = ui_state.original_mouse_icon_enabled
 			old_drawing["_UNLOAD"]()
 		end

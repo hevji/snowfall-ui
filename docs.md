@@ -30,7 +30,7 @@ local appearance = tab:create_subtab("Appearance")
 local colors = appearance:create_section("Colors", 1, 1)
 ```
 
-`subtab:create_section(name, side, height, y_position)` uses the same section layout as `group:create_section(tab_name, name, side, height, y_position)`. `side` is `1` or `2`; `height` is the fraction of the available content area to occupy. Subtab sections fit below the subtab strip and remain inside the tab frame. Subtab underlines match the label width and fade from left to right; the active label and underline use the accent color with a soft glow, while inactive underlines stay subdued. Switching subtabs animates their section panels.
+`subtab:create_section(name, side, height, y_position)` uses the same section layout as `group:create_section(tab_name, name, side, height, y_position)`. `side` is `1` or `2`; `height` is the fraction of the available content area to occupy. Subtab sections fit below the subtab strip and remain inside the tab frame. Subtab underlines match the label width and stay solid; the active label and underline use the accent color with a soft glow just beneath the line, while inactive underlines stay subdued. Switching subtabs animates their section panels. The line under each `menu.create_group(...)` heading fades from left to right.
 
 For a classic tab without subtabs:
 

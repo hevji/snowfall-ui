@@ -439,11 +439,13 @@ do
 	local context_action_service = cloneref(game:GetService("ContextActionService"))
 	local context_action_click = tostring({}):sub(math_random(8, 12))
 	local context_action_scroll = tostring({}):sub(math_random(8, 12))
-	local context_action_right_click = tostring({}):sub(math_random(8, 12))
 	local context_action_typing = tostring({}):sub(math_random(8, 12))
 	local context_action_typing_core = tostring({}):sub(math_random(8, 12))
-	local context_action_priority = 100000
-	local mouse_unlock_step_name = "SnowfallMouseUnlock_" .. context_action_click
+	ui_state["input_capture"] = {
+		right_click_action = tostring({}):sub(math_random(8, 12)),
+		priority = 100000,
+		mouse_unlock_step = "SnowfallMouseUnlock_" .. context_action_click,
+	}
 
 	local shortened_characters = {
 		[Enum.KeyCode.LeftShift] = "lshift",
@@ -4233,7 +4235,7 @@ do
 		end
 	end)
 
-	local function is_pointer_over_snowfall_ui(input)
+	ui_state["input_capture"]["is_pointer_over"] = function(input)
 		if not menu_open then
 			return false
 		end
@@ -4271,22 +4273,22 @@ do
 		return false
 	end
 
-	local function bind_capturing_action(action_name, callback, ...)
+	ui_state["input_capture"]["bind_action"] = function(action_name, callback, ...)
 		context_action_service:BindActionAtPriority(
 			action_name,
 			function(name, state, input)
-				local should_sink = is_pointer_over_snowfall_ui(input)
+				local should_sink = ui_state["input_capture"]["is_pointer_over"](input)
 				callback(name, state, input)
 				return should_sink and Enum["ContextActionResult"]["Sink"] or Enum["ContextActionResult"]["Pass"]
 			end,
 			false,
-			context_action_priority,
+			ui_state["input_capture"]["priority"],
 			...
 		)
 	end
 
-	local function handle_right_click_action(name, state, input)
-		local should_sink = is_pointer_over_snowfall_ui(input)
+	ui_state["input_capture"]["right_click_callback"] = function(name, state, input)
+		local should_sink = ui_state["input_capture"]["is_pointer_over"](input)
 		if should_sink
 			and state == Enum["UserInputState"]["Begin"]
 			and input["UserInputType"] == Enum["UserInputType"]["MouseButton2"]
@@ -4454,22 +4456,22 @@ do
 			end
 		end
 
-		bind_capturing_action(
+		ui_state["input_capture"]["bind_action"](
 			context_action_click,
 			handle_click,
 			Enum["UserInputType"]["MouseButton1"],
 			Enum["UserInputType"]["Touch"]
 		)
-		bind_capturing_action(
+		ui_state["input_capture"]["bind_action"](
 			context_action_scroll,
 			handle_scroll,
 			Enum["UserInputType"]["MouseWheel"]
 		)
 		context_action_service:BindActionAtPriority(
-			context_action_right_click,
-			handle_right_click_action,
+			ui_state["input_capture"]["right_click_action"],
+			ui_state["input_capture"]["right_click_callback"],
 			false,
-			context_action_priority,
+			ui_state["input_capture"]["priority"],
 			Enum["UserInputType"]["MouseButton2"]
 		)
 
@@ -4479,7 +4481,7 @@ do
 		if not menu_open then
 			context_action_service:UnbindAction(context_action_click)
 			context_action_service:UnbindAction(context_action_scroll)
-			context_action_service:UnbindAction(context_action_right_click)
+			context_action_service:UnbindAction(ui_state["input_capture"]["right_click_action"])
 
 			delay(0.17, function()
 				if old_tick == menu_tick then
@@ -9311,11 +9313,15 @@ do
 		ui_state.original_mouse_icon_enabled = user_input_service["MouseIconEnabled"]
 		ui_state.original_mouse_behavior = user_input_service["MouseBehavior"]
 		ui_state.mouse_behavior_saved = menu_open
-		run_service:BindToRenderStep(mouse_unlock_step_name, Enum["RenderPriority"]["Last"]["Value"], function()
-			if menu_open and user_input_service["MouseBehavior"] ~= Enum["MouseBehavior"]["Default"] then
-				user_input_service["MouseBehavior"] = Enum["MouseBehavior"]["Default"]
+		run_service:BindToRenderStep(
+			ui_state["input_capture"]["mouse_unlock_step"],
+			Enum["RenderPriority"]["Last"]["Value"],
+			function()
+				if menu_open and user_input_service["MouseBehavior"] ~= Enum["MouseBehavior"]["Default"] then
+					user_input_service["MouseBehavior"] = Enum["MouseBehavior"]["Default"]
+				end
 			end
-		end)
+		)
 
 		local env = getgenv()
 		local old_drawing = env["fake_drawing"]
@@ -9370,8 +9376,8 @@ do
 			context_action_service:UnbindAction(context_action_typing)
 			context_action_service:UnbindCoreAction(context_action_typing_core)
 			context_action_service:UnbindAction(context_action_scroll)
-			context_action_service:UnbindAction(context_action_right_click)
-			run_service:UnbindFromRenderStep(mouse_unlock_step_name)
+			context_action_service:UnbindAction(ui_state["input_capture"]["right_click_action"])
+			run_service:UnbindFromRenderStep(ui_state["input_capture"]["mouse_unlock_step"])
 
 			env["getrawmetatable"] = real
 

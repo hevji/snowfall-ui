@@ -33,6 +33,7 @@ See [`example.lua`](example.lua) for a complete runnable menu and [`docs.md`](do
 - Groups, tabs, optional subtabs, and responsive two-column sections.
 - Toggle, slider, dropdown, textbox, color picker, keybind, info, and button controls.
 - Right-click keybind modes (toggle, hold, always, remove), an active keybind list, and customizable header text/logo.
+- RightShift menu toggle by default, temporary first-person mouse unlock, and high-priority input capture over the UI.
 - Signals, notifications, themes, configs, favorites, settings popovers, and keybind display.
 - A dark teal palette, Plex font, glass-like translucent surfaces with soft scene blur, accent glows beneath dividers, a left-to-right fade on group heading lines, solid subtab underlines, and a refined resize grip.
 

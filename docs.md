@@ -16,6 +16,8 @@ local flags = library.flags
 
 The UI defaults to 125% scale (`menu.ui_scale == 1.25`) and an initial window size of about 913×675 pixels. Drag the header to move it and drag the bottom-right grip to resize its width and height. Resizing does not change the scale factor. The window uses a dark teal palette, Plex text, glass-like translucent surfaces with a subtle scene blur while open, softer rounded outlines, accent glows, one bright divider under the logo and title, and a rounded resize grip.
 
+The menu toggles with **RightShift** by default. While open, the library raises its backing `ScreenGui` above other interfaces when the drawing backend exposes one, captures mouse and touch input over the window, and unlocks the mouse for first-person use. Closing the menu restores the previous mouse behavior.
+
 ## Build the navigation
 
 Create a group, then add one or more tabs. Tabs can contain normal sections or optional subtabs. Each subtab can own one or more sections; selecting a subtab hides the sections belonging to the others.
@@ -126,7 +128,7 @@ Other returned helpers include `library.tween(object, properties, easing_style, 
 - Themes can be selected and managed from the built-in settings interface. `menu:load_theme(name)` loads a theme; `menu.get_theme_list()` returns available theme names.
 - `menu.save_config(name)`, `menu.load_config(name)`, `menu.get_config_list()`, and `menu.get_config_data(data)` provide config helpers.
 - The library stores notification preference, autoload config, favorites, theme selection, and hide-on-load preference in `data.dat`.
-- Unload the menu and disconnect its input/render hooks with `getgenv()._JUJU()`. The original Roblox mouse cursor visibility is restored during unload.
+- Unload the menu and disconnect its input/render hooks with `getgenv()._JUJU()`. The original Roblox mouse cursor visibility and mouse behavior are restored during unload.
 
 ## Complete example
 

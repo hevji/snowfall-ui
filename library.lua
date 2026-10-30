@@ -439,8 +439,11 @@ do
 	local context_action_service = cloneref(game:GetService("ContextActionService"))
 	local context_action_click = tostring({}):sub(math_random(8, 12))
 	local context_action_scroll = tostring({}):sub(math_random(8, 12))
+	local context_action_right_click = tostring({}):sub(math_random(8, 12))
 	local context_action_typing = tostring({}):sub(math_random(8, 12))
 	local context_action_typing_core = tostring({}):sub(math_random(8, 12))
+	local context_action_priority = 100000
+	local mouse_unlock_step_name = "SnowfallMouseUnlock_" .. context_action_click
 
 	local shortened_characters = {
 		[Enum.KeyCode.LeftShift] = "lshift",
@@ -765,6 +768,20 @@ do
 		["Transparency"] = 1,
 		["Visible"] = false,
 	})
+	pcall(function()
+		local object = frame["object"]["__OBJECT"]
+		if object:IsA("GuiObject") then
+			object["Active"] = true
+		end
+		while object do
+			if object:IsA("ScreenGui") then
+				object["DisplayOrder"] = 1000000
+				object["ZIndexBehavior"] = Enum["ZIndexBehavior"]["Global"]
+				break
+			end
+			object = object["Parent"]
+		end
+	end)
 	menu_references["glass_blur"] = Instance["new"]("BlurEffect")
 	menu_references["glass_blur"]["Name"] = "SnowfallGlassBlur"
 	menu_references["glass_blur"]["Size"] = 0
@@ -1106,7 +1123,7 @@ do
 
 	local keybind_data = {
 		[1] = {
-			["key"] = Enum["KeyCode"]["Delete"],
+			["key"] = Enum["KeyCode"]["RightShift"],
 			["value"] = true,
 			["original_value"] = false,
 			["set_activated"] = LPH_NO_VIRTUALIZE(function()
@@ -3622,7 +3639,10 @@ do
 			end)
 		end
 
-		local mouse_position = get_mouse_location(user_input_service)
+		local mouse_position = type == Enum["UserInputType"]["Touch"]
+			and input["Position"]
+			or get_mouse_location(user_input_service)
+		mouse_position = vector2_new(mouse_position["X"], mouse_position["Y"])
 		local mouse_position_x = mouse_position["X"]
 		local mouse_position_y = mouse_position["Y"]
 		local resize_position = menu_references["resize_hitbox"]["real_position"]
@@ -4213,6 +4233,69 @@ do
 		end
 	end)
 
+	local function is_pointer_over_snowfall_ui(input)
+		if not menu_open then
+			return false
+		end
+
+		local position = input["UserInputType"] == Enum["UserInputType"]["Touch"]
+			and input["Position"]
+			or get_mouse_location(user_input_service)
+		position = vector2_new(position["X"], position["Y"])
+
+		local function contains(drawing)
+			if not drawing or not drawing["is_rendering"] or type(drawing["real_size"]) == "number" then
+				return false
+			end
+			local drawing_position = drawing["real_position"]
+			local drawing_size = drawing["real_size"]
+			return position["X"] >= drawing_position["X"]
+				and position["X"] <= drawing_position["X"] + drawing_size["X"]
+				and position["Y"] >= drawing_position["Y"]
+				and position["Y"] <= drawing_position["Y"] + drawing_size["Y"]
+		end
+
+		if contains(frame) then
+			return true
+		end
+		for drawing in click_connections do
+			if contains(drawing) then
+				return true
+			end
+		end
+		for _, drawing in hud_frames do
+			if contains(drawing) then
+				return true
+			end
+		end
+		return false
+	end
+
+	local function bind_capturing_action(action_name, callback, ...)
+		context_action_service:BindActionAtPriority(
+			action_name,
+			function(name, state, input)
+				local should_sink = is_pointer_over_snowfall_ui(input)
+				callback(name, state, input)
+				return should_sink and Enum["ContextActionResult"]["Sink"] or Enum["ContextActionResult"]["Pass"]
+			end,
+			false,
+			context_action_priority,
+			...
+		)
+	end
+
+	local function handle_right_click_action(name, state, input)
+		local should_sink = is_pointer_over_snowfall_ui(input)
+		if should_sink
+			and state == Enum["UserInputState"]["Begin"]
+			and input["UserInputType"] == Enum["UserInputType"]["MouseButton2"]
+		then
+			handle_right_click(name, input)
+		end
+		return should_sink and Enum["ContextActionResult"]["Sink"] or Enum["ContextActionResult"]["Pass"]
+	end
+
 	local hovering = nil
 
 	pop_menu = LPH_JIT_MAX(function(a)
@@ -4277,9 +4360,18 @@ do
 
 		menu_open = not menu_open
 		if menu_open then
+			if not ui_state.mouse_behavior_saved then
+				ui_state.original_mouse_behavior = user_input_service["MouseBehavior"]
+				ui_state.mouse_behavior_saved = true
+			end
+			user_input_service["MouseBehavior"] = Enum["MouseBehavior"]["Default"]
 			menu_references["glass_blur"]["Enabled"] = true
 			tween(menu_references["glass_blur"], { Size = 5 }, exponential, out, 0.2)
 		else
+			if ui_state.mouse_behavior_saved then
+				user_input_service["MouseBehavior"] = ui_state.original_mouse_behavior or Enum["MouseBehavior"]["Default"]
+				ui_state.mouse_behavior_saved = false
+			end
 			tween(menu_references["glass_blur"], { Size = 0 }, exponential, out, 0.16)
 			delay(0.16, function()
 				if not menu_open then
@@ -4362,18 +4454,23 @@ do
 			end
 		end
 
-		context_action_service:BindAction(
+		bind_capturing_action(
 			context_action_click,
 			handle_click,
-			false,
 			Enum["UserInputType"]["MouseButton1"],
 			Enum["UserInputType"]["Touch"]
 		)
-		context_action_service:BindAction(
+		bind_capturing_action(
 			context_action_scroll,
 			handle_scroll,
-			false,
 			Enum["UserInputType"]["MouseWheel"]
+		)
+		context_action_service:BindActionAtPriority(
+			context_action_right_click,
+			handle_right_click_action,
+			false,
+			context_action_priority,
+			Enum["UserInputType"]["MouseButton2"]
 		)
 
 		local old_tick = clock()
@@ -4382,6 +4479,7 @@ do
 		if not menu_open then
 			context_action_service:UnbindAction(context_action_click)
 			context_action_service:UnbindAction(context_action_scroll)
+			context_action_service:UnbindAction(context_action_right_click)
 
 			delay(0.17, function()
 				if old_tick == menu_tick then
@@ -4419,9 +4517,6 @@ do
 					end
 				end
 
-				if menu_open and user_input_type == Enum["UserInputType"]["MouseButton2"] then
-					handle_right_click(nil, input)
-				end
 			end
 		end)
 	)
@@ -9214,6 +9309,13 @@ do
 			unload()
 		end
 		ui_state.original_mouse_icon_enabled = user_input_service["MouseIconEnabled"]
+		ui_state.original_mouse_behavior = user_input_service["MouseBehavior"]
+		ui_state.mouse_behavior_saved = menu_open
+		run_service:BindToRenderStep(mouse_unlock_step_name, Enum["RenderPriority"]["Last"]["Value"], function()
+			if menu_open and user_input_service["MouseBehavior"] ~= Enum["MouseBehavior"]["Default"] then
+				user_input_service["MouseBehavior"] = Enum["MouseBehavior"]["Default"]
+			end
+		end)
 
 		local env = getgenv()
 		local old_drawing = env["fake_drawing"]
@@ -9268,6 +9370,8 @@ do
 			context_action_service:UnbindAction(context_action_typing)
 			context_action_service:UnbindCoreAction(context_action_typing_core)
 			context_action_service:UnbindAction(context_action_scroll)
+			context_action_service:UnbindAction(context_action_right_click)
+			run_service:UnbindFromRenderStep(mouse_unlock_step_name)
 
 			env["getrawmetatable"] = real
 
@@ -9277,6 +9381,10 @@ do
 
 			menu_references["glass_blur"]["Enabled"] = false
 			menu_references["glass_blur"]:Destroy()
+			if ui_state.mouse_behavior_saved then
+				user_input_service["MouseBehavior"] = ui_state.original_mouse_behavior or Enum["MouseBehavior"]["Default"]
+				ui_state.mouse_behavior_saved = false
+			end
 			user_input_service["MouseIconEnabled"] = ui_state.original_mouse_icon_enabled
 			old_drawing["_UNLOAD"]()
 		end

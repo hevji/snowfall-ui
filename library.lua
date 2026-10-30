@@ -60,6 +60,9 @@ local shadow_image_data = base64_decode(
 local pixel_image_data = base64_decode(
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAAYdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCA1LjEuMvu8A7YAAAC2ZVhJZklJKgAIAAAABQAaAQUAAQAAAEoAAAAbAQUAAQAAAFIAAAAoAQMAAQAAAAIAAAAxAQIAEAAAAFoAAABphwQAAQAAAGoAAAAAAAAA8nYBAOgDAADydgEA6AMAAFBhaW50Lk5FVCA1LjEuMgADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlAAAAAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAACOO8FX0xe8TgAAAAxJREFUGFdj+P//PwAF/gL+pzWBhAAAAABJRU5ErkJggg=="
 )
+ui_state["under_glow_image_data"] = base64_decode(
+	"iVBORw0KGgoAAAANSUhEUgAAAIAAAAAQCAYAAADeWHeIAAABm0lEQVR42u2WO08CURBG9wUrC7iyEAMYDSFGC0IstCEhsbGk9P//Ffw2+W5yudyHnWMyxek2s8U5M7vZ+XzOQAGGoAEtWIA12IAXsAcf4Ai+wAl8K6I40c2RrvZ0t6HLBd02dN07zzIrgArUYMwH52AJHsEWvHLoOziAT0UUB7rZ09WW7pZ02dJtTdcXAeSgBANwwwdvQQfuWdATh/ZV7cCbIood3Wzpak13HV2O6XZA17kbgLkCQyeCOxbUD1uxqv6sPCui2NDNiq7mdGfLH1rb7w3AXAETQf+9mHDIzAqhPysPiiiWlvgZnU3o0Mg32+8NIBTBiAVNrYvQ8adCkUNnbfyUzkYR+RcBuFegsiKonRDMRWgVUZiNt8XXlvzK3X5fAHYEsRAavkiRQ5MQf7X9oQBCEfhCUOTgio/J9wbgXoEiEYIij5D4wrf9sQDcEEonBDsGRQaVI770iE8GEIsgFIIigzKx9VfyQwH4InBDcGNQ/p4iIT73uQ4FEIrAF4Iii/y38lMBxCLQEP6P+DzmOBVAKgJFPlG/Pyvaei1ERC7YAAAAAElFTkSuQmCC"
+)
 local fade_line_image_data = base64_decode(
 	"iVBORw0KGgoAAAANSUhEUgAAAIAAAAADCAYAAABbGge9AAAA90lEQVR42u3SgUYdAABA0WeSSZKZJEmSTJIkSZIkSZIkk0mSJEmSJEkkSZIkSZIkSZJkkpmZJEmSJEmSJEmSJElShz6jdzl/cANvH73ywjNPPPLAPXfccsM1V1xywTlnnHLCMUcccsA+e+yywzZbbLLBOv/5x1/+sMYqv1lhmSUWWWCeOWaZYZopJplgnDFGGWGYIQYZoJ8+eumhmy466aCdNlppoZkmGmmgnjpqqaGaKn5RyU8qKKeMUkoopohCCsgnj1xyyCaLTDJIJ41UUkjmB0kkkkA8ccQSQzRRfOcbkUQQThhfCSWELwQCwQGCAwQH+MQDvAOLqTsM20UNLAAAAABJRU5ErkJggg=="
 )
@@ -772,13 +775,9 @@ do
 	})
 	pcall(function()
 		local object = frame["object"]["__OBJECT"]
-		if object:IsA("GuiObject") then
-			object["Active"] = true
-		end
 		while object do
 			if object:IsA("ScreenGui") then
 				object["DisplayOrder"] = 1000000
-				object["ZIndexBehavior"] = Enum["ZIndexBehavior"]["Global"]
 				break
 			end
 			object = object["Parent"]
@@ -925,11 +924,10 @@ do
 	menu_references["header_glow"] = drawing_proxy["new"]("Image", {
 		["Parent"] = inside,
 		["Position"] = udim2_new(0, 9, 0, 59),
-		["Size"] = udim2_new(0, 98, 0, 6),
+		["Size"] = udim2_new(0, 98, 0, 8),
 		["Color"] = menu["colors"]["accent"],
-		["Transparency"] = 0.18,
-		["Rounding"] = 5,
-		["Data"] = shadow_image_data,
+		["Transparency"] = 0.7,
+		["Data"] = ui_state["under_glow_image_data"],
 		["ZIndex"] = 5,
 		["Visible"] = true,
 	})
@@ -1075,7 +1073,7 @@ do
 		local widest_label = math.max(juju_text["TextBounds"]["X"], build_text["TextBounds"]["X"])
 		local divider_width = 42 + widest_label
 		menu_references["decorative_stripes"][1]["Size"] = udim2_new(0, divider_width, 0, 1)
-		menu_references["header_glow"]["Size"] = udim2_new(0, divider_width + 8, 0, 6)
+		menu_references["header_glow"]["Size"] = udim2_new(0, divider_width + 8, 0, 8)
 		if options["logo"] ~= nil then
 			return self:set_logo(options["logo"])
 		end
@@ -4883,12 +4881,11 @@ do
 		})
 		local underline_glow = drawing_proxy["new"]("Image", {
 			["Parent"] = tab["frame"],
-			["Position"] = udim2_new(0, x + 1, 0, 24),
-			["Size"] = udim2_new(0, text_width + 8, 0, 6),
+			["Position"] = udim2_new(0, x + 1, 0, 23),
+			["Size"] = udim2_new(0, text_width + 8, 0, 8),
 			["Color"] = menu["colors"]["accent"],
 			["Transparency"] = 0,
-			["Rounding"] = 5,
-			["Data"] = shadow_image_data,
+			["Data"] = ui_state["under_glow_image_data"],
 			["ZIndex"] = 5,
 			["Visible"] = true,
 		})
@@ -4929,7 +4926,7 @@ do
 				}, circular, out, 0.18)
 				tween(item["glow"], {
 					Color = active and menu["colors"]["accent"] or menu["colors"]["inactive_text"],
-					Transparency = active and 0.22 or 0,
+					Transparency = active and 0.7 or 0,
 				}, circular, out, 0.2)
 			end
 
